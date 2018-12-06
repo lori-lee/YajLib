@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DiffMe</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script src="/js/yajlib.js"></script>
+    <style type="text/css">
+    .container {
+        width: 80%;
+        margin: 40px auto;
+    }
+    .container > div {
+        margin: 10px auto;
+    }
+    .diff-left, .diff-right {
+        display: inline-block;
+        width: 500px;
+        overflow: scroll;
+        border: 1px solid #CCC;
+        margin: 20px 10px 20px 0;
+        vertical-align: top;
+    }
+    .diff-left div, .diff-right div {
+        width: 100%;
+        height: 18px;
+        line-height: 18px;
+    }
+    textarea {
+        width: 500px;
+    }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="">
+            <div class="diff-left"></div>
+            <div class="diff-right"></div>
+        </div>
+        <div class=""> 
+            <div class="row">
+                <textarea name="stringA" rows="10" cols="50"></textarea>
+                <textarea name="stringB" rows="10" cols="50"></textarea>
+            </div>
+            <button name="run" data-type="mdiff">MDIFF-ME</button>
+        </div>
+    </div>
+    <script type="text/javascript">
+    (new Promise((resolve, reject) => {
+        var _ready = function() {
+            if(['complete', 'interactive'].indexOf(document.readyState) >= 0) {
+                resolve(true);
+            } else {
+                setTimeout(_ready, 20);
+            }
+        };
+        _ready();
+    })).then(function(ok) {
+        var btnSet = document.querySelectorAll('[name=run]');
+        btnSet.forEach(function(btn) {
+            btn.addEventListener('click', function(ev) {
+                ev.preventDefault && ev.preventDefault();
+                var type = btn.getAttribute('data-type');
+                var strA = document.querySelector('[name=stringA]').value;
+                var strB = document.querySelector('[name=stringB]').value;
+                var diffNg = YajLib.diffNg();
+                var result = diffNg.mdiff(strA, strB);
+                document.querySelector('.diff-left').innerHTML = result['left'];
+                document.querySelector('.diff-right').innerHTML= result['right'];
+            });
+        });
+    });
+    </script>
+</body>
