@@ -4,7 +4,7 @@
  * @WARNING: NEVER change below codes until you are clear what you are doing.
  *
  **/
-var YajLib = YajLib || {};
+var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1.0'};
 (function(window) {
     'use strict';
     //
