@@ -28,9 +28,33 @@
     textarea {
         width: 500px;
     }
+    .svg-clock {
+        height: 100px;
+        width: 400px;
+    }
     </style>
 </head>
 <body>
+    <div class="svg-clock" id="svg-clock-1"></div>
+    <div class="svg-clock" id="svg-clock-2"></div>
+    <div class="svg-clock" id="svg-clock-3"></div>
+    <div class="svg-clock" id="svg-clock-4"></div>
+    <script type="text/javascript">
+        var targetDOM1 = document.querySelector('#svg-clock-1');
+        var targetDOM2 = document.querySelector('#svg-clock-2');
+        var targetDOM3 = document.querySelector('#svg-clock-3');
+        var targetDOM4 = document.querySelector('#svg-clock-4');
+        var clock1 = new YajLib.lcdClock(targetDOM1, 0x7);
+        var clock2 = new YajLib.lcdClock(targetDOM2, 0x7, 13, 42);
+        var clock3 = new YajLib.lcdClock(targetDOM3, 0x7, 0, 30, 05);
+        var clock4 = new YajLib.lcdClock(targetDOM4, 0x6);
+        clock1.run();
+        clock2.run();
+        clock3.set24HourMode(false)
+              .setCountdown(true);
+        clock3.run();
+        clock4.run();
+    </script>
     <div class="container">
         <div class="">
             <div class="diff-left"></div>
@@ -41,6 +65,7 @@
                 <textarea name="stringA" rows="10" cols="50"></textarea>
                 <textarea name="stringB" rows="10" cols="50"></textarea>
             </div>
+            <!--<button name="run" data-type="diff">DIFF-ME</button>-->
             <button name="run" data-type="mdiff">MDIFF-ME</button>
         </div>
     </div>
@@ -63,7 +88,11 @@
                 var strA = document.querySelector('[name=stringA]').value;
                 var strB = document.querySelector('[name=stringB]').value;
                 var diffNg = YajLib.diffNg();
-                var result = diffNg.mdiff(strA, strB);
+                var result = 'diff' == type ? diffNg.diff(strA, strB) : diffNg.mdiff(strA, strB);
+                if('diff' == type) {
+                    result['left'] = result['left'].replace(/\r?\n/g, '<br>');
+                    result['right']= result['right'].replace(/\r?\n/g, '<br>');
+                }
                 document.querySelector('.diff-left').innerHTML = result['left'];
                 document.querySelector('.diff-right').innerHTML= result['right'];
             });
@@ -71,3 +100,4 @@
     });
     </script>
 </body>
+</html>
