@@ -409,10 +409,10 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         //
         YajLib.tokenizer = YajLib.tokenizer || _defaultTokenizer;
         YajLib.diffNg    = YajLib.diffNg || DiffNg;
-        Object.defineProperties(YajLib, {
-            tokenizer : propertySetting,
-            diffNg    : propertySetting,
-        });
+        //Object.defineProperties(YajLib, {
+        //    tokenizer : propertySetting,
+        //    diffNg    : propertySetting,
+        //});
     }(YajLib));
     //
     var HTMLTokenizer;
@@ -576,8 +576,8 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             return tokens;
         };
         YajLib.htmlTokenizer = YajLib.htmlTokenizer || HTMLTokenizer;
-        Object.defineProperties(YajLib, {
-            htmlTokenizer: propertySetting
-        });
+        //Object.defineProperties(YajLib, {
+        //    htmlTokenizer: propertySetting
+        //});
     }(YajLib));
 }(window));
