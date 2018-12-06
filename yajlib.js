@@ -1,8 +1,9 @@
 /**
  * @Author: Lori Lee
  * @Email: leejqy@163.com
- * @WARNING: NEVER change below codes until you are clear what you are doing.
  *
+ * @WARNING: NEVER change below codes until you are clear what you are doing.
+ * All rights reserved.
  **/
 var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1.0'};
 (function(window) {
