@@ -1,5 +1,5 @@
 # YajLib
-## YajLib is a lightweight js lib which wrote by Lori Lee(leejqy@163.com)
+## YajLib is a lightweight js lib which is written by Lori Lee(leejqy@163.com)
 ## Currently only a few class / functions. (diffNg / tokenizer / htmlTokenizer) are exposed.
 ## Example
 ### diff between 2 files / multi-line texts:
