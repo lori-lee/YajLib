@@ -6,7 +6,7 @@
 #### var options= null;//Designed for advanced UI customize. if null default view will be used.
 #### var diffNg = YajLib.diffNg(options);
 #### var diffResult = diffNg.mdiff(textA, textB);
-#### document.querySelector('.diff-letf').innerHTML = diffResult['left'];
+#### document.querySelector('.diff-left').innerHTML = diffResult['left'];
 #### document.querySelector('.diff-right').innerHTML= diffResult['right'];
 ### Tokenize a string
 #### YajLib.tokenize(text);
