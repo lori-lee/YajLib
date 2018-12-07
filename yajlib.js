@@ -1,10 +1,13 @@
 /**
- * @Author: lori@flashbay.com
+ * @Author: Lori Lee
+ * @Email:  leejqy@163.com
  *
  * @WARNING: NEVER change below codes until you are clear what you are doing.
  *
+ * All rights reserved.
+ *
  **/
-var YajLib = YajLib || {};
+var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1.1'};
 (function(window) {
     'use strict';
     //
@@ -40,7 +43,8 @@ var YajLib = YajLib || {};
     (function(YajLib) {
         var _validOptions = {
             tokenizer: 'function', marker:        'function', wrapper:     'function',
-            equal:     'function', casesensitive: 'boolean',  blankignore: 'boolean'
+            equal:     'function', casesensitive: 'boolean',  blankignore: 'boolean',
+            slmarker: 'function', tabwidth: 'number'
         };
         //
         DiffNg = function(options) {
@@ -48,10 +52,12 @@ var YajLib = YajLib || {};
                 this.options = {
                     tokenizer: _defaultTokenizer,
                     marker   : _defaultMarkFunc,
+                    slmarker : _defaultSmLnMarker,
+                    tabwidth : 4,  
                     wrapper  : _defaultWrapper,
                     equal    : _defaultEqualFunc,
                     casesensitive: true,
-                    blankignore  : false
+                    blankignore  : false,
                 };
                 options = options || {};
                 for(let k in options) {
@@ -76,7 +82,7 @@ var YajLib = YajLib || {};
                 var tokensA = options['tokenizer'](strA);
                 var tokensB = options['tokenizer'](strB);
                 var diffResult = _worker.call(this, tokensA, tokensB);
-                var marker = options['marker'];
+                var marker = options['marker'].bind(this);
                 var indexA = diffResult['pos'].map(_map(0));
                 var indexB = diffResult['pos'].map(_map(1));
                 var left = _composer.call(this, tokensA, indexA, reverse);
@@ -94,8 +100,10 @@ var YajLib = YajLib || {};
                 var diffResult = _worker.call(this, linesA, linesB);
                 var linesALenW = Math.ceil(Math.log10(linesA.length + 1));
                 var linesBLenW = Math.ceil(Math.log10(linesB.length + 1));
+                var linesLenMax= Math.max(linesALenW, linesBLenW);
                 var wrapper  = this.options['wrapper'];
-                var wrapAlignmentBlank = wrapper.bind(this, 0, linesALenW, -1);
+                var slmarker = this.options['slmarker'].bind(this);
+                var wrapAlignmentBlank = wrapper.bind(this, 0, linesLenMax, -1);
                 var composer = function(linesA, linesB, index) {
                     let left = [], right = [];
                     let i = 0, j = 0;
@@ -142,37 +150,34 @@ var YajLib = YajLib || {};
                        let p = _maxMatchingPairs(similarities, linesA.length, linesB.length);
                        let ps= p['pairs'];
                        let i = 0, j = 0;
+                       let __htmlEncode = _htmlEncode.bind(this);
                        while(ps && ps.length) {
                            if(i < ps[0][0]) {
                                for(let start = i, end = ps[0][0] - 1; start <= end; ++start) {
-                                   left.push(wrapper(offsetA + start, linesALenW, 1, linesA[start]));
+                                   left.push(wrapper.call(this, offsetA + start, indexALenW, 1, linesA[start]));
                                }
-                               //left.push(linesA.slice(i, ps[0][0]).map(wrapTrue).join(''));
-                               //right.push((new Array(ps[0][0] - i)).fill('').map(wrapTrue).join(''));
                                right.push((new Array(ps[0][0] - i)).fill('').map(wrapAlignmentBlank).join(''));
                            }
-                           if(ps[0][1] > j) {
-                               //left.push((new Array(ps[0][1] - j)).fill('').map(wrapTrue).join(''));
+                           if(j < ps[0][1]) {
                                left.push((new Array(ps[0][1] - j)).fill('').map(wrapAlignmentBlank).join(''));
-                               //right.push(linesB.slice(j, ps[0][1]).map(wrapTrue).join(''));
                                for(let start = j, end = ps[0][1] - 1; start <= end; ++start) {
-                                   right.push(wrapper(offsetB + start, linesBLenW, 1, linesB[start]));
+                                   right.push(wrapper.call(this, offsetB + start, indexBLenW, 1, linesB[start]));
                                }
                            }
                            left.push(
-                               wrapper(
-                                   offsetA + ps[0][0], linesALenW, 0,
+                               wrapper.call(this,
+                                   offsetA + ps[0][0], indexALenW, 0,
                                    _composer.call(
-                                       this, linesTokensA[ps[0][0]],
+                                       this, linesTokensA[ps[0][0]].map(__htmlEncode),
                                        s[ps[0][0]][ps[0][1]][1].map(_map(0)), reverse
                                    )
                                )
                            );
                            right.push(
-                               wrapper(
-                                   offsetB + ps[0][1], linesBLenW, 0,
+                               wrapper.call(this,
+                                   offsetB + ps[0][1], indexBLenW, 0,
                                    _composer.call(
-                                       this, linesTokensB[ps[0][1]],
+                                       this, linesTokensB[ps[0][1]].map(__htmlEncode),
                                        s[ps[0][0]][ps[0][1]][1].map(_map(1)), reverse
                                    )
                                )
@@ -181,35 +186,31 @@ var YajLib = YajLib || {};
                            ++i; ++j;
                        }
                        if(i < linesA.length) {
-                           //left.push(linesA.slice(i, linesA.length).map(wrapTrue).join(''));
                            for(let start = i, end = linesA.length - 1; start <= end; ++start) {
-                               left.push(wrapper(offsetA + start, linesALenW, 1, linesA[start]));
+                               left.push(wrapper.call(this, offsetA + start, indexALenW, 1, linesA[start]));
                            }
-                           //right.push((new Array(linesA.length - i)).fill('').map(wrapTrue).join(''));
                            right.push((new Array(linesA.length - i)).fill('').map(wrapAlignmentBlank).join(''));
                        }
                        if(j < linesB.length) {
-                           //left.push((new Array(linesB.length - j)).fill('').map(wrapTrue).join(''));
                            left.push((new Array(linesB.length - j)).fill('').map(wrapAlignmentBlank).join(''));
-                           //right.push(linesB.slice(j, linesB.length).map(wrapTrue).join(''));
                            for(let start = j, end = linesB.length - 1; start <= end; ++start) {
-                               right.push(wrapper(offsetB + start, linesBLenW, 1, linesB[start]));
+                               right.push(wrapper.call(this, offsetB + start, indexBLenW, 1, linesB[start]));
                            }
                        }
                     };
                     while(index.length) {
                         let l = linesA.slice(i, index[0][0]);
                         let r = linesB.slice(j, index[0][1]);
-                        composer.call(this, l, r, i, j, linesALenW, linesBLenW);
+                        composer.call(this, l, r, i, j, linesLenMax, linesLenMax);
                         [[i, j]] = index.splice(0, 1);
-                        left.push(wrapper(i, linesALenW, 0, linesA[i]));
-                        right.push(wrapper(j, linesBLenW, 0, linesB[j]));
+                        left.push(wrapper.call(this, i, linesLenMax, 0, slmarker(i, linesLenMax, linesA[i])));
+                        right.push(wrapper.call(this, j, linesLenMax, 0, slmarker(j, linesLenMax, linesB[j])));
                         ++i; ++j;
                     }
                     if(i < linesA.length || j < linesB.length) {
                         composer.call(this,
                           linesA.slice(i, linesA.length), linesB.slice(j, linesB.length),
-                          i, j, linesALenW, linesBLenW
+                          i, j, linesLenMax, linesLenMax
                         );
                     }
                     return {left: left.join(''), right: right.join('')};
@@ -260,27 +261,38 @@ var YajLib = YajLib || {};
         };
         //
         var _defaultMarkFunc = function(prev, string, next) {
-            var _ = isBlank(string);
-            string = string.replace(/\s/, '&nbsp;');
+            var _ = isBlank(string) || string.match(/^(&nbsp;|\s)+$/);
+            string = _htmlEncode.call(this, string);
             if(_) {
                 string = _bgRedTag.replace('{blank}', string);
             } else {
                 string = _fgRedTag.replace('{text}', string);
             }
-            return string.replace(/\t/, '&nbsp;'.repeat(4))
-                         .replace(/\s/, '&nbsp;');
+            return string;
         };
         //
-        var _redLine = '<div style="display:inline-block;background-color:red;"><div style="display:inline-block;background:#CCC;width:{width}em;padding:0 5px;">{index}</div>{line}</div>';
-        var _diffLine= '<div style="display:inline-block"><div style="display:inline-block;background:#CCC;width:{width}em;padding:0 5px;">{index}</div>{line}</div>';
-        var _alignmentBlankLine = '<div style="display:inline-block;"><div style="display:inline-block;background:#CCC;width:{width}em;padding:0 5px;color:#CCC;">{index}</div></div>';
+        var _defaultSmLnMarker = function(i, w, string) {
+            return _htmlEncode.call(this, string);
+        };
+        //
+        var _htmlEncode = function(string) {
+            var options = this.options;
+            return string.replace(/</g, '&lt;')
+                         .replace(/>/g, '&gt;')
+                         .replace(/\t/g, '&nbsp;&nbsp;'.repeat(options['tabwidth']))
+                         .replace(/\s/g, '&nbsp;&nbsp;');
+        };
+        //
+        var _redLine = '<div style="display:inline-block;background-color:red;white-space:nowrap;"><div style="display:inline-block;background:#CCC;width:{width}em;padding:0 5px;">{index}</div>{line}</div>';
+        var _diffLine= '<div style="display:inline-block;white-space:nowrap;"><div style="display:inline-block;background:#CCC;width:{width}em;padding:0 5px;">{index}</div>{line}</div>';
+        var _alignmentBlankLine = '<div style="display:inline-block;white-space:nowrap;"><div style="display:inline-block;background:#CCC;width:{width}em;padding:0 5px;color:#CCC;">{index}</div></div>';
         var _defaultWrapper = function(lineNo, lineNoLen, flag, line) {
             //flag:0  -- existed before and left / right lines are associated
             //    -1  -- not existed before but added for line alignment purpose
             //    +1  -- existed before and not associated with the other side
             if(flag < 0) {
                 return _alignmentBlankLine.replace('{width}', lineNoLen * 0.5)
-                                          .replace('{index}', '0'.repeat(lineNoLen));
+                                          .replace('{index}', '&nbsp;'.repeat(lineNoLen));
             }
             var lineNoTxt = '' + lineNo;
             if(lineNoTxt.length < lineNoLen) {
@@ -288,9 +300,7 @@ var YajLib = YajLib || {};
             }
             var lineTxt = line;
             if(flag) {
-                lineTxt = line.replace(/\s/, '&nbsp;')
-                              .replace(/</, '&lt;')
-                              .replace(/>/, '&gt;');
+                lineTxt = _htmlEncode.call(this, lineTxt);
             }
             return (flag ? _redLine : _diffLine).replace('{width}', lineNoLen * 0.5)
                                                 .replace('{index}', lineNoTxt)
@@ -316,7 +326,7 @@ var YajLib = YajLib || {};
         var _composer = function(tokens, index, reverse) {
             let r = [];
             let options = this.options;
-            let marker  = options['marker'];
+            let marker  = options['marker'].bind(this);
             for(let i = 0, l = tokens.length; i < l; ++i) {
                 if(!index.length || i < index[0]) {
                     r.push(!reverse ? marker(tokens[i - 1], tokens[i], tokens[i + 1]) : tokens[i]);
@@ -402,10 +412,10 @@ var YajLib = YajLib || {};
         //
         YajLib.tokenizer = YajLib.tokenizer || _defaultTokenizer;
         YajLib.diffNg    = YajLib.diffNg || DiffNg;
-        Object.defineProperties(YajLib, {
-            tokenizer : propertySetting,
-            diffNg    : propertySetting,
-        });
+        //Object.defineProperties(YajLib, {
+        //    tokenizer : propertySetting,
+        //    diffNg    : propertySetting,
+        //});
     }(YajLib));
     //
     var HTMLTokenizer;
@@ -569,8 +579,378 @@ var YajLib = YajLib || {};
             return tokens;
         };
         YajLib.htmlTokenizer = YajLib.htmlTokenizer || HTMLTokenizer;
-        Object.defineProperties(YajLib, {
-            htmlTokenizer: propertySetting
-        });
+        //Object.defineProperties(YajLib, {
+        //    htmlTokenizer: propertySetting
+        //});
+    }(YajLib));
+    //
+    var LCDClock;
+    (function(YajLib) {
+        var gDotDelimiter = [
+            [3, 3,  4, 4],
+            [3, 11, 4, 4]
+        ];
+        //12/20
+        var gSegPolygons = [
+            [[1, 1],  [2, 0],  [8, 0],   [9, 1],  [8, 2],  [2, 2]],//A
+            [[9, 1],  [10, 2], [10, 8],  [9, 9],  [8, 8],  [8, 2]],//B
+            [[9, 9],  [10,10], [10, 16], [9, 17], [8,16],  [8,10]],//C
+            [[9, 17], [8, 18], [2, 18],  [1, 17], [2, 16], [8,16]],//D
+            [[1, 17], [0, 16], [0, 10],  [1, 9],  [2,10],  [2,16]],//E
+            [[1, 9],  [0, 8],  [0, 2],   [1, 1],  [2, 2],  [2, 8]],//F
+            [[1, 9],  [2, 8],  [8, 8],   [9, 9],  [8, 10], [2, 10]]//G
+        ];
+        var gLcdDigits = [
+            [0, 1, 2, 3, 4, 5],
+            [1, 2],
+            [0, 1, 6, 4, 3],
+            [0, 1, 6, 2, 3],
+            [5, 6, 1, 2],
+            [0, 5, 6, 2, 3],
+            [0, 5, 4, 3, 2, 6],
+            [0, 1, 2],
+            [0, 1, 2, 3, 4, 5, 6],
+            [6, 5, 0, 1, 2, 3],
+        ];
+        LCDClock = function(targetDOM, style, h, m, s) {
+            if(!(targetDOM instanceof Element)) {
+                throw 'Invalid parameter 1';
+            }
+            if(this instanceof LCDClock) {
+                this.targetDOM = targetDOM;
+                this.updateByDelta = false;
+                if('undefined' != typeof h 
+                   || 'undefined' != typeof m
+                   || 'undefined' != typeof s) {
+                   this.updateByDelta = true;
+                }
+                this.hour = isNaN(parseInt(h)) ? 0 : parseInt(h);
+                this.min  = isNaN(parseInt(m)) ? 0 : parseInt(m);;
+                this.sec  = isNaN(parseInt(s)) ? 0 : parseInt(s);;
+                if('undefined' == typeof style) {
+                    style = LCDClock.HOUR | LCDClock.MIN | LCDClock.SEC;
+                } else {
+                    style = style & 0x7;
+                }
+                this.style = style;
+                this.highlight = '#F00';
+                this.greyed    = '#EEE';
+                this.use24HourMode = true;
+                this.running   = false;
+                this.updateRid = null;
+                this.countdown = false;
+                this.ticksNum  = 0;
+            } else {
+                return new LCDClock(targetDOM, style, h, m, s);
+            }
+        };
+        //
+        var UNIT_ROWS = 20;
+        var UNIT_COLS = 12;
+        LCDClock.HOUR = 0x4;
+        LCDClock.MIN  = 0x2;
+        LCDClock.SEC  = 0x1;
+        //
+        var SVG_G_HOUR_ID_0 = 'svg_hour_0';
+        var SVG_G_HOUR_ID_1 = 'svg_hour_1';
+        //
+        var SVG_G_HMD_ID    = 'svg_hour_min_d';
+        //
+        var SVG_G_MIN_ID_0  = 'svg_min_0';
+        var SVG_G_MIN_ID_1  = 'svg_min_1';
+        //
+        var SVG_G_MSD_ID    = 'svg_min_sec_d';
+        //
+        var SVG_G_SEC_ID_0  = 'svg_sec_0';
+        var SVG_G_SEC_ID_1  = 'svg_sec_1';
+
+        LCDClock.prototype = {
+            set24HourMode: function(use24HourMode) {
+                this.use24HourMode = !!use24HourMode;
+                return this;
+            },
+            setCountdown: function(flag) {
+                this.countdown = !!flag;
+                return this;
+            },
+            setHighlightColor: function(highlightColor) {
+                this.highlight = highlightColor;
+                return this;
+            },
+            getHighlightColor: function() {
+                return this.highlight;
+            },
+            setGreyedColor: function(greyedColor) {
+                this.greyed = greyedColor;
+                return this;
+            },
+            getGreyedColor: function() {
+                return this.greyed;
+            },
+            run: function() {
+                if(!this.running) {
+                    this.running = true;
+                    var updateCallback = function(event) {
+                        _eraseDotDelimiter.call(this, event);
+                        if(!(this.ticksNum++ % this.periodNum)) {
+                            if(this.countdown) {
+                                this.hour = Math.max(0, this.hour) % 100;
+                                this.min  = Math.max(0, this.min) % 100;
+                                this.sec  = Math.max(0, this.sec) % 100;
+                                if(_isAllZero.call(this)) {
+                                    return this;
+                                }
+                                if(--this.sec < 0) {
+                                    this.sec = 59;
+                                    if(--this.min < 0) {
+                                        this.min = 59;
+                                        --this.hour;
+                                    }
+                                }
+                            } else {
+                                if(this.updateByDelta) {
+                                    if(60 == ++this.sec) {
+                                        ++this.min;
+                                        this.sec = 0;
+                                        if(60 == ++this.min) {
+                                            ++this.hour;
+                                            this.min = 0;
+                                            if(this.use24HourMode) {
+                                                this.hour %= 24;
+                                            } else {
+                                                this.hour %= 12;
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    var currentDate = new Date;
+                                    this.hour = currentDate.getHours();
+                                    this.min  = currentDate.getMinutes();
+                                    this.sec  = currentDate.getSeconds();
+                                }
+                            }
+                            _updateUI.call(this);
+                        }
+                        return this;
+                    };
+                    updateCallback = updateCallback.bind(this);
+                    updateCallback();
+                    if(!(this.style & LCDClock.SEC)) {
+                        this.periodNum = 2;
+                    } else {
+                        this.periodNum = 1;
+                    }
+                    this.updateRid = setInterval(updateCallback, 1000 / this.periodNum);
+                }
+                return this;
+            },
+            stop: function() {
+                if(this.running) {
+                    if(null !== this.updateRid) {
+                        clearInterval(this.updateRid);
+                        this.updateRid = null;
+                    }
+                    this.running = false;
+                }
+                return this;
+            }
+        };
+        //
+        var _getPolygonPointsOfSegs = function(segIndexSet, offsetX, offsetY) {
+            var points = [];
+            for(var i = 0; i < segIndexSet.length; ++i) {
+                var segIndex = segIndexSet[i];
+                var segPoints= [];
+                for(var j = 0; j < gSegPolygons[segIndex].length; ++j) {
+                    var point = gSegPolygons[segIndex][j];
+                    var x = offsetX + point[0];
+                    var y = offsetY + point[1];
+                    segPoints.push(x + ',' + y);
+                }
+                points.push(segPoints);
+            }
+            return points;
+        };
+        //
+        var _getPolygonPointsOfDigit = function(digit, offsetX, offsetY) {
+            var highlightPoints = _getPolygonPointsOfSegs.call(this, gLcdDigits[digit], offsetX, offsetY);
+            var greyedPoints    = [];
+            var greyedSegIndex  = [0, 1, 2, 3, 4, 5, 6];
+            for(var i = 0; i < gLcdDigits[digit].length; ++i) {
+                var segIndex = gLcdDigits[digit][i];
+                var j = greyedSegIndex.indexOf(segIndex);
+                greyedSegIndex.splice(j, 1);
+            }
+            greyedPoints = _getPolygonPointsOfSegs.call(this, greyedSegIndex, offsetX, offsetY);
+            return [highlightPoints, greyedPoints];
+        };
+        //
+        var _isAllZero = function() {
+            return !this.hour && !this.min && !this.sec;
+        };
+        //
+        var _eraseDotDelimiter = function(event) {
+            if(!(this.style & LCDClock.SEC) && _getLCDColumnsNum.call(this) > 3) {
+                _updateDotDelimiter.call(
+                    this, SVG_G_HMD_ID, UNIT_COLS << 1, this.greyed
+                );
+            }
+            return this;
+        };
+        //
+        var _updateUI = function() {
+            var offset = 0;
+            var step;
+            if(this.style & LCDClock.HOUR) {
+                step = UNIT_COLS;
+                _updateDigit.call(
+                    this, SVG_G_HOUR_ID_0,
+                    offset, parseInt(this.hour / 10),
+                    this.highlight, this.greyed
+                );
+                offset += step;
+                _updateDigit.call(
+                    this, SVG_G_HOUR_ID_1,
+                    offset, this.hour % 10,
+                    this.highlight, this.greyed
+                );
+                offset += step;
+            }
+            if(offset > 0
+               && ((this.style & LCDClock.MIN)
+                    || (this.style & LCDClock.SEC))) {
+                _updateDotDelimiter.call(
+                    this, SVG_G_HMD_ID,
+                    offset, this.highlight
+                );
+                offset += UNIT_COLS;
+            }
+            if(this.style & LCDClock.MIN) {
+                step = UNIT_COLS;
+                _updateDigit.call(
+                    this, SVG_G_MIN_ID_0,
+                    offset, parseInt(this.min / 10),
+                    this.highlight, this.greyed
+                );
+                offset += step;
+                _updateDigit.call(
+                    this, SVG_G_MIN_ID_1,
+                    offset, this.min % 10,
+                    this.highlight, this.greyed
+                );
+                offset += step;
+            }
+            if(offset > 0
+                && (this.style & LCDClock.SEC)) {
+                _updateDotDelimiter.call(
+                    this, SVG_G_MSD_ID,
+                    offset, this.highlight
+                );
+                offset += UNIT_COLS;
+            }
+            if(this.style & LCDClock.SEC) {
+                step = UNIT_COLS;
+                _updateDigit.call(
+                    this, SVG_G_SEC_ID_0,
+                    offset, parseInt(this.sec / 10),
+                    this.highlight, this.greyed
+                );
+                offset += step;
+                _updateDigit.call(
+                    this, SVG_G_SEC_ID_1,
+                    offset, this.sec % 10,
+                    this.highlight, this.greyed
+                );
+            }
+            return this;
+        };
+        //
+        var _getDotDelimterSVGHtml = function(offset, highlight) {
+            var points = [];
+            var dotDelimterHtml = [];
+            for(var i = 0; i < gDotDelimiter.length; ++i) {
+                var xywh = gDotDelimiter[i];
+                var x = offset + xywh[0];
+                var rectHtml = '<rect id="" x="' + x + '" y="' + xywh[1] + '" width="' + xywh[2] + '" height="' + xywh[3] + '" fill="' + highlight + '"/>';
+                dotDelimterHtml.push(rectHtml); 
+            }
+            return dotDelimterHtml.join('');
+        };
+        //
+        var _updateDotDelimiter = function(groupId, offset, highlight) {
+            var SVGGroupDOM = _getSVGGroup.call(this, groupId);
+            var dotDelimterHtml = _getDotDelimterSVGHtml.call(this, offset, highlight);
+            SVGGroupDOM.innerHTML = dotDelimterHtml;
+            return this;
+        };
+        //
+        var _getDigitSVGHtml = function(offset, digit, highlight, greyed) {
+            var points = _getPolygonPointsOfDigit.call(this, digit, offset, 0);
+            var digitSVGHtml = [];
+            var colors = [highlight, greyed];
+            for(var i = 0; i < points.length; ++i) {
+                for(var j = 0; j < points[i].length; ++j) {
+                    var polygonHtml = '<polygon xmlns="http://www.w3.org/2000/svg" id="" points="' + points[i][j].join(' ') + '" fill="' + colors[i] + '"/>';
+                    digitSVGHtml.push(polygonHtml);
+                }
+            }
+            return digitSVGHtml.join('');
+        };
+        //
+        var _updateDigit = function(groupId, offset, digit, highlight, greyed) {
+            digit &= 0xF;
+            if(isNaN(digit) || digit > 9 || digit < 0) {
+                throw 'Invalid digit: ' + digit + ', expect 0 ~ 9';
+            }
+            var SVGGroupDOM = _getSVGGroup.call(this, groupId);
+            var digitSVGHtml= _getDigitSVGHtml.call(this, offset, digit, highlight, greyed);
+            SVGGroupDOM.innerHTML = digitSVGHtml;
+            return this;
+        };
+        //
+        var _getLCDColumnsNum = function() {
+            var columns = 0;
+            if(this.style & LCDClock.HOUR) {
+                columns += 2;
+            }
+            if(this.style & LCDClock.MIN) {
+                if(columns) {
+                    ++columns;
+                }
+                columns += 2;
+            }
+            if(this.style & LCDClock.SEC) {
+                if(columns) {
+                    ++columns;
+                }
+                columns += 2;
+            }
+            return columns;
+        };
+        //
+        var _getSVGContainer = function() {
+            var columnNum = _getLCDColumnsNum.call(this);
+            var SVGDOM    = this.targetDOM.querySelector('svg');
+            if(!SVGDOM) {
+                var svgHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 ' + (UNIT_COLS * columnNum) + ' ' + UNIT_ROWS + '"></svg>';
+                this.targetDOM.innerHTML = svgHtml;
+                SVGDOM = this.targetDOM.querySelector('svg');
+            }
+            return SVGDOM;
+        };
+        //
+        var _getSVGGroup = function(groupId) {
+            var SVGDOM  = _getSVGContainer.call(this);
+            var selector= 'g[id="' + groupId + '"]';
+            var groupDOM = SVGDOM.querySelector(selector);
+            if(!groupDOM) {
+                var svgGroupHtml = '<g xmlns="http://www.w3.org/2000/svg" id="' + groupId + '" style="fill-rule:evenodd;stroke:#FFFFFF;stroke-width:0.2;stroke-opacity:1;stroke-linecap:butt;stroke-linejoin:miter;"></g>';
+                SVGDOM.innerHTML += svgGroupHtml;
+                groupDOM = SVGDOM.querySelector(selector);
+            }
+            groupDOM.innerHTML = '';
+            return groupDOM;
+        };
+        YajLib.lcdClock = YajLib.lcdClock || LCDClock;
     }(YajLib));
 }(window));
