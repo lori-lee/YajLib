@@ -279,13 +279,13 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             var options = this.options;
             return string.replace(/</g, '&lt;')
                          .replace(/>/g, '&gt;')
-                         .replace(/\t/g, '&nbsp;&nbsp;'.repeat(options['tabwidth']))
-                         .replace(/\s/g, '&nbsp;&nbsp;');
+                         .replace(/\t/g, '  '.repeat(options['tabwidth']))
+                         .replace(/\s/g, '  ');
         };
         //
-        var _redLine = '<div style="display:inline-block;background-color:red;white-space:nowrap;"><div style="display:inline-block;background:#CCC;width:{width}em;padding:0 5px;">{index}</div>{line}</div>';
-        var _diffLine= '<div style="display:inline-block;white-space:nowrap;"><div style="display:inline-block;background:#CCC;width:{width}em;padding:0 5px;">{index}</div>{line}</div>';
-        var _alignmentBlankLine = '<div style="display:inline-block;white-space:nowrap;"><div style="display:inline-block;background:#CCC;width:{width}em;padding:0 5px;color:#CCC;">{index}</div></div>';
+        var _redLine = '<div style="background-color:red;white-space:pre;"><div style="display:inline-block;background:#CCC;width:{width}em;padding:0 5px;">{index}</div>{line}</div>';
+        var _diffLine= '<div style="white-space:pre;"><div style="display:inline-block;background:#CCC;width:{width}em;padding:0 5px;">{index}</div>{line}</div>';
+        var _alignmentBlankLine = '<div style="white-space:pre;"><div style="display:inline-block;background:#CCC;width:{width}em;padding:0 5px;color:#CCC;">{index}</div></div>';
         var _defaultWrapper = function(lineNo, lineNoLen, flag, line) {
             //flag:0  -- existed before and left / right lines are associated
             //    -1  -- not existed before but added for line alignment purpose
