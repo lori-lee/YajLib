@@ -219,11 +219,6 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             }
         };
         //
-        Object.defineProperties(DiffNg.prototype, {
-            diff : propertySetting,
-            mdiff: propertySetting
-        });
-        //
         var _defaultTokenizer = function(str) {
             var tokens = [];
             var addPrevWord = function(token, str, s, i) {
@@ -410,12 +405,12 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             };
         };
         //
-        YajLib.tokenizer = YajLib.tokenizer || _defaultTokenizer;
-        YajLib.diffNg    = YajLib.diffNg || DiffNg;
-        //Object.defineProperties(YajLib, {
-        //    tokenizer : propertySetting,
-        //    diffNg    : propertySetting,
-        //});
+        YajLib.tokenizer || (YajLib.tokenizer = _defaultTokenizer);
+        YajLib.diffNg    || (YajLib.diffNg = DiffNg);
+        Object.defineProperties(YajLib, {
+            tokenizer : propertySetting,
+            diffNg    : propertySetting,
+        });
     }(YajLib));
     //
     var HTMLTokenizer;
@@ -578,10 +573,10 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             storeTagInfo();
             return tokens;
         };
-        YajLib.htmlTokenizer = YajLib.htmlTokenizer || HTMLTokenizer;
-        //Object.defineProperties(YajLib, {
-        //    htmlTokenizer: propertySetting
-        //});
+        YajLib.htmlTokenizer || (YajLib.htmlTokenizer = HTMLTokenizer);
+        Object.defineProperties(YajLib, {
+            htmlTokenizer: propertySetting
+        });
     }(YajLib));
     //
     var LCDClock;
@@ -951,6 +946,175 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             groupDOM.innerHTML = '';
             return groupDOM;
         };
-        YajLib.lcdClock = YajLib.lcdClock || LCDClock;
+        YajLib.lcdClock || (YajLib.lcdClock = LCDClock);
+        Object.defineProperties(YajLib, {
+            lcdClock: propertySetting
+        });
+    }(YajLib));
+    /**
+     * @See: https://www.ietf.org/rfc/rfc1321.txt
+     *
+     **/
+    var MD5;
+    (function(YajLib) {
+        var CA = 0x67452301;
+        var CB = 0xefcdab89;
+        var CC = 0x98badcfe;
+        var CD = 0x10325476;
+        function F(X, Y, Z) {
+            return (X & Y) | (~X & Z);
+        };
+        function G(X, Y, Z) {
+            return (X & Z) | (Y & ~Z);
+        };
+        function H(X, Y, Z) {
+            return X ^ Y ^ Z;
+        };
+        function I(X, Y, Z) {
+            return Y ^ (X | ~Z);
+        };
+        function rotateLeftShift(uint32, n) {
+            if(n &= 0x1F) {
+                return (uint32 << n) | (uint32 >>> (32 - n));
+            };
+            return uint32;
+        };
+        function round(A, B, C, D, k, s, i, f) {
+            return B + rotateLeftShift(A + f(B, C, D) + k + magics[i], s);
+        };
+        var magics = [
+            0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
+            0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be, 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
+            0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa, 0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
+            0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed, 0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
+            0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c, 0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
+            0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05, 0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
+            0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039, 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
+            0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
+        ];
+        //
+        var isLittleEndian = (function() {
+            var buff = new ArrayBuffer(2);
+            (new DataView(buff)).setInt16(0, 1, true);
+            return 1 == (new Int16Array(buff))[0];
+        }());
+        var convert16Words = function(uint8Array) {
+            var t = [];
+            for(var i = 0; i <= 60; i += 4) {
+                t.push(uint8Array[i]
+                    | (uint8Array[i + 1] <<  8)
+                    | (uint8Array[i + 2] << 16)
+                    | (uint8Array[i + 3] << 24)
+                );
+            }
+            return t;
+        };
+        //
+        MD5 = function(string) {
+            var uint8Array = [];
+            string = '' + string;
+            for(let i = 0, len = string.length; i < len; ++i) {
+                let code = string.charCodeAt(i);
+                uint8Array.push(code & 0xFF);
+                (code >> 8) && (uint8Array.push((code >> 8) & 0xFF));
+            }
+            var olen = uint8Array.length;
+            var paddingLen;
+            uint8Array.push(0x80);
+            if((olen & 63) < 55) {
+                paddingLen = 55 - (olen & 63);
+            } else {
+                paddingLen = 118 - (olen & 63);
+            }
+            uint8Array = uint8Array.concat((new Array(paddingLen + 4)).fill(0));
+            uint8Array = uint8Array.concat([olen & 0xFF, (olen >> 8) & 0xFF, (olen >> 16) & 0xFF, (olen >> 24) & 0xFF]);
+            var A = CA, B = CB, C = CC, D = CD;
+            for(let i = 0, len = uint8Array.length; i < len; i += 64) {
+                let AA = A, BB = B, CC = C, DD = D;
+                let T = convert16Words(uint8Array.slice(i, i + 64));
+                //Round 1
+                A = round(A, B, C, D, T[ 0],  7,  0, F);
+                D = round(D, A, B, C, T[ 1], 12,  1, F);
+                C = round(C, D, A, B, T[ 2], 17,  2, F);
+                B = round(B, C, D, A, T[ 3], 22,  3, F);
+                A = round(A, B, C, D, T[ 4],  7,  4, F);
+                D = round(D, A, B, C, T[ 5], 12,  5, F);
+                C = round(C, D, A, B, T[ 6], 17,  6, F);
+                B = round(B, C, D, A, T[ 7], 22,  7, F);
+                A = round(A, B, C, D, T[ 8],  7,  8, F);
+                D = round(D, A, B, C, T[ 9], 12,  9, F);
+                C = round(C, D, A, B, T[10], 17, 10, F);
+                B = round(B, C, D, A, T[11], 22, 11, F);
+                A = round(A, B, C, D, T[12],  7, 12, F);
+                D = round(D, A, B, C, T[13], 12, 13, F);
+                C = round(C, D, A, B, T[14], 17, 14, F);
+                B = round(B, C, D, A, T[15], 22, 15, F);
+                //Round 2
+                A = round(A, B, C, D, T[ 1],  5, 16, G);
+                D = round(D, A, B, C, T[ 6],  9, 17, G);
+                C = round(C, D, A, B, T[11], 14, 18, G);
+                B = round(B, C, D, A, T[ 0], 20, 19, G);
+                A = round(A, B, C, D, T[ 5],  5, 20, G);
+                D = round(D, A, B, C, T[10],  9, 21, G);
+                C = round(C, D, A, B, T[15], 14, 22, G);
+                B = round(B, C, D, A, T[ 4], 20, 23, G);
+                A = round(A, B, C, D, T[ 9],  5, 24, G);
+                D = round(D, A, B, C, T[14],  9, 25, G);
+                C = round(C, D, A, B, T[ 3], 14, 26, G);
+                B = round(B, C, D, A, T[ 8], 20, 27, G);
+                A = round(A, B, C, D, T[13],  5, 28, G);
+                D = round(D, A, B, C, T[ 2],  9, 29, G);
+                C = round(C, D, A, B, T[ 7], 14, 30, G);
+                B = round(B, C, D, A, T[12], 20, 31, G);
+                //Round 3
+                A = round(A, B, C, D, T[ 5],  4, 32, H);
+                D = round(D, A, B, C, T[ 8], 11, 33, H);
+                C = round(C, D, A, B, T[11], 16, 34, H);
+                B = round(B, C, D, A, T[14], 23, 35, H);
+                A = round(A, B, C, D, T[ 1],  4, 36, H);
+                D = round(D, A, B, C, T[ 4], 11, 37, H);
+                C = round(C, D, A, B, T[ 7], 16, 38, H);
+                B = round(B, C, D, A, T[10], 23, 39, H);
+                A = round(A, B, C, D, T[13],  4, 40, H);
+                D = round(D, A, B, C, T[ 0], 11, 41, H);
+                C = round(C, D, A, B, T[ 3], 16, 42, H);
+                B = round(B, C, D, A, T[ 6], 23, 43, H);
+                A = round(A, B, C, D, T[ 9],  4, 44, H);
+                D = round(D, A, B, C, T[12], 11, 45, H);
+                C = round(C, D, A, B, T[15], 16, 46, H);
+                B = round(B, C, D, A, T[ 2], 23, 47, H);
+                //Round 4
+                A = round(A, B, C, D, T[ 0],  6, 48, I);
+                D = round(D, A, B, C, T[ 7], 10, 49, I);
+                C = round(C, D, A, B, T[14], 15, 50, I);
+                B = round(B, C, D, A, T[ 5], 21, 51, I);
+                A = round(A, B, C, D, T[12],  6, 52, I);
+                D = round(D, A, B, C, T[ 3], 10, 53, I);
+                C = round(C, D, A, B, T[10], 15, 54, I);
+                B = round(B, C, D, A, T[ 1], 21, 55, I);
+                A = round(A, B, C, D, T[ 8],  6, 56, I);
+                D = round(D, A, B, C, T[15], 10, 57, I);
+                C = round(C, D, A, B, T[ 6], 15, 58, I);
+                B = round(B, C, D, A, T[13], 21, 59, I);
+                A = round(A, B, C, D, T[ 4],  6, 60, I);
+                D = round(D, A, B, C, T[11], 10, 61, I);
+                C = round(C, D, A, B, T[ 2], 15, 62, I);
+                B = round(B, C, D, A, T[ 9], 21, 63, I);
+                A += AA;
+                B += BB;
+                C += CC;
+                D += DD;
+            }
+            return [A, B, C, D].map((n) => {
+                return (n         & 0xFF).toString(16).padStart(2, '0')
+                     + ((n >>  8) & 0xFF).toString(16).padStart(2, '0')
+                     + ((n >> 16) & 0xFF).toString(16).padStart(2, '0')
+                     + ((n >> 24) & 0xFF).toString(16).padStart(2, '0');
+            }).join('');
+        };
+        YajLib.md5 || (YajLib.md5 = MD5);
+        Object.defineProperties(YajLib, {
+            md5: propertySetting
+        });
     }(YajLib));
 }(window));
