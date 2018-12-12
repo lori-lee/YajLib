@@ -1,4 +1,3 @@
-/**
  * @Author: Lori Lee
  * @Email:  leejqy@163.com
  *
@@ -11,15 +10,15 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
 (function(window) {
     'use strict';
     //
-    var isNotBlank = function(char) {
+    var isNotBlank = (char) => {
         return !isBlank(char);
     };
     //
-    var isBlank = function(char) {
+    var isBlank = (char) => {
         return !!('' + char).match(/^\s+$/);
     };
     //
-    var isPunctuation = function(char) {
+    var isPunctuation = (char) => {
         if(!!char && char.length) {
             let _code = char.charCodeAt(0);
             return (0x21 <= _code && _code <= 0x2F)
@@ -30,7 +29,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         return false;
     };
     //
-    var isCJKC = function(char) {
+    var isCJKC = (char) => {
         if(!!char && char.length) {
             let _code = char.charCodeAt(0);
             return 0x4E00 <= _code && _code <= 0x9FFF;
@@ -221,7 +220,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         //
         var _defaultTokenizer = function(str) {
             var tokens = [];
-            var addPrevWord = function(token, str, s, i) {
+            var addPrevWord = (token, str, s, i) => {
                 if(null !== s) {
                     token.push(str.substr(s, i - s));
                 }
@@ -251,7 +250,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         var _fgRedTag = '<span style="display:inline-block;color:red;">{text}</span>';
         var _bgRedTag = '<span style="display:inline-block;background-color:red;color:red;">{blank}</span>';
         var _CRRegex = /\r\n|\n|\r/;
-        var _isCR = function(char) {
+        var _isCR = (char) => {
             return !!('' + char).match(_CRRegex);
         };
         //
@@ -302,18 +301,18 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                                                 .replace('{line}', lineTxt);
         };
         //
-        var _defaultEqualFunc = function(a, b) {
+        var _defaultEqualFunc = (a, b) => {
             return a == b;
         };
         //
-        var _map = function(index) {
-            return function(v) {
+        var _map = (index) => {
+            return (v) => {
                 return v[index];
             };
         };
         //
-        var __map = function(index) {
-            return function(v) {
+        var __map = (index) => {
+            return (v) => {
                 return v.map(_map(index));
             };
         };
@@ -376,7 +375,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             };
         };
         //
-        var _maxMatchingPairs = function(similarities, n, m) {
+        var _maxMatchingPairs = (similarities, n, m) => {
             var maxMatchingScore = 0;
             var prevRow = (new Array(m + 1)).fill(0);
             var currRow = (new Array(m + 1)).fill(0);
@@ -416,31 +415,31 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
     var HTMLTokenizer;
     (function(YajLib) {
         //
-        var _isLowercase = function(char) {
+        var _isLowercase = (char) => {
             return 'a' <= char && char <= 'z';
         };
         //
-        var _isUppercase = function(char) {
+        var _isUppercase = (char) => {
             return 'A' <= char && char <= 'Z';
         };
         //
-        var _isAlphabet = function(char) {
+        var _isAlphabet = (char) => {
             return _isLowercase(char) || _isUppercase(char);
         };
         //
-        var _isDigit = function(char) {
+        var _isDigit = (char) => {
             return '0' <= char && char <= '9';
         };
         //
-        var _isAlphaNum = function(char) {
+        var _isAlphaNum = (char) => {
             return _isAlphabet(char) || _isDigit(char);
         };
         //
-        var _isQuote = function(char) {
+        var _isQuote = (char) => {
             return '"' == char || "'" == char;
         };
         //
-        HTMLTokenizer = function(string) {
+        HTMLTokenizer = (string) => {
             var tokens = [];
             var status = 0;
             var tagName= '';
@@ -956,30 +955,26 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
      *
      **/
     var MD5;
-    (function(YajLib) {
-        var CA = 0x67452301;
-        var CB = 0xefcdab89;
-        var CC = 0x98badcfe;
-        var CD = 0x10325476;
-        function F(X, Y, Z) {
+    ((YajLib) => {
+        var F  = (X, Y, Z) => {
             return (X & Y) | (~X & Z);
         };
-        function G(X, Y, Z) {
+        var G  = (X, Y, Z) => {
             return (X & Z) | (Y & ~Z);
         };
-        function H(X, Y, Z) {
+        var H  = (X, Y, Z) => {
             return X ^ Y ^ Z;
         };
-        function I(X, Y, Z) {
+        var I  = (X, Y, Z) => {
             return Y ^ (X | ~Z);
         };
-        function rotateLeftShift(uint32, n) {
+        var rotateLeftShift = (uint32, n) => {
             if(n &= 0x1F) {
                 return (uint32 << n) | (uint32 >>> (32 - n));
             };
             return uint32;
         };
-        function round(A, B, C, D, k, s, i, f) {
+        var round = (A, B, C, D, k, s, i, f) => {
             return B + rotateLeftShift(A + f(B, C, D) + k + magics[i], s);
         };
         var magics = [
@@ -993,14 +988,14 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
         ];
         //
-        var isLittleEndian = (function() {
+        var isLittleEndian = (() => {
             var buff = new ArrayBuffer(2);
             (new DataView(buff)).setInt16(0, 1, true);
             return 1 == (new Int16Array(buff))[0];
-        }());
-        var convert16Words = function(uint8Array) {
+        })();
+        var convert16Words = (uint8Array) => {
             var t = [];
-            for(var i = 0; i <= 60; i += 4) {
+            for(var i = 0; i < 64; i += 4) {
                 t.push(uint8Array[i]
                     | (uint8Array[i + 1] <<  8)
                     | (uint8Array[i + 2] << 16)
@@ -1010,25 +1005,29 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             return t;
         };
         //
-        MD5 = function(string) {
+        MD5 = (string) => {
             var uint8Array = [];
             string = '' + string;
             for(let i = 0, len = string.length; i < len; ++i) {
                 let code = string.charCodeAt(i);
                 uint8Array.push(code & 0xFF);
-                (code >> 8) && (uint8Array.push((code >> 8) & 0xFF));
+                (code & 0xFF00) && (uint8Array.push((code >> 8) & 0xFF));
             }
             var olen = uint8Array.length;
             var paddingLen;
             uint8Array.push(0x80);
-            if((olen & 63) < 55) {
-                paddingLen = 55 - (olen & 63);
+            if((olen & 0x3F) < 56) {
+                paddingLen = 55 - (olen & 0x3F);
             } else {
-                paddingLen = 118 - (olen & 63);
+                paddingLen = 119 - (olen & 0x3F);
             }
-            uint8Array = uint8Array.concat((new Array(paddingLen + 4)).fill(0));
-            uint8Array = uint8Array.concat([olen & 0xFF, (olen >> 8) & 0xFF, (olen >> 16) & 0xFF, (olen >> 24) & 0xFF]);
-            var A = CA, B = CB, C = CC, D = CD;
+            olen <<= 3;
+            uint8Array = uint8Array.concat((new Array(paddingLen)).fill(0));
+            uint8Array = uint8Array.concat(
+                [olen & 0xFF, (olen >> 8) & 0xFF, (olen >> 16) & 0xFF, (olen >> 24) & 0xFF],
+                [0, 0, 0, 0]
+            );
+            var A = 0x67452301, B = 0xefcdab89, C = 0x98badcfe, D = 0x10325476;
             for(let i = 0, len = uint8Array.length; i < len; i += 64) {
                 let AA = A, BB = B, CC = C, DD = D;
                 let T = convert16Words(uint8Array.slice(i, i + 64));
@@ -1105,6 +1104,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                 C += CC;
                 D += DD;
             }
+            uint8Array.length = 0;
             return [A, B, C, D].map((n) => {
                 return (n         & 0xFF).toString(16).padStart(2, '0')
                      + ((n >>  8) & 0xFF).toString(16).padStart(2, '0')
@@ -1116,5 +1116,21 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         Object.defineProperties(YajLib, {
             md5: propertySetting
         });
-    }(YajLib));
+    })(YajLib);
+    var Base64Encode;
+    var Base64Decode;
+    ((YajLib) => {
+        Base64Encode = (string) => {
+            for(let i = 0, len = string.len; i < len;) {
+            }
+        };
+        Base64Decode = (string) => {
+        };
+        YajLib.base64Encode || (YajLib.base64Encode = Base64Encode);
+        YajLib.base64Decode || (YajLib.base64Decode = Base64Decode);
+        Object.defineProperties(YajLib, {
+            base64Encode: propertySetting,
+            base64Decode: propertySetting
+        });
+    })(YajLib);
 }(window));
