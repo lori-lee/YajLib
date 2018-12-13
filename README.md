@@ -22,5 +22,5 @@
 ### base64Encode / base64Decode
 #### YajLib.base64Encode('abc')  ==> output: YWJj
 #### YajLib.base64Decode('YWJj') ==> output: abc
-### Note: Unicode will be used both for md5 & base64Encode (//TODO: add parameter encoding:(utf-8 etc), and evaluate binary bits according to it.
+### Note: Unicode will be used both for md5 & base64Encode (//TODO: add parameter encoding:(utf-8 etc), and evaluate binary bits according to it).
 #### More examples, see the html/js code of file diffme.html
