@@ -12,6 +12,8 @@
 #### YajLib.tokenize(text);
 ### Tokenize a html string
 #### YajLib.htmlTokenizer(html);
+### stripTag a html string
+#### YajLib.stripTag('&lt;body&gt;hello world &lt;strong&gt;STRONG&lt;/strong&gt;&lt;/body&gt;', ['strong'])  ==> Output: hello world &lt;strong&gt;STRONG&lt;/strong&gt;
 ###  LCD style clock
 #### var targetDOM1 = document.querySelector('#svg-clock-1'); //<div id="svg-clock-1"&gt;&lt;/div&gt;
 #### var clock1 = new YajLib.lcdClock(targetDOM1, 0x7);
