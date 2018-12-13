@@ -1,3 +1,4 @@
+/**
  * @Author: Lori Lee
  * @Email:  leejqy@163.com
  *
@@ -9,7 +10,42 @@
 var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1.1'};
 (function(window) {
     'use strict';
+    var propertySetting = {writable: false, configurable: false};
     //
+    ((YajLib) => {
+        var isLittleEndian = (() => {
+            var buff = new ArrayBuffer(2);
+            (new DataView(buff)).setInt16(0, 1, true);
+            return 1 == (new Int16Array(buff))[0];
+        })();
+        YajLib.isLittleEndian || (YajLib.isLittleEndian = isLittleEndian);
+        Object.defineProperties(YajLib, {
+            isLittleEndian: propertySetting
+        });
+    })(YajLib);
+    //
+    var getBytesArray = (input) => {
+        var bytes = [];
+        if(Number.isInteger(input)) {
+            bytes = [input & 0xFF, (input >> 8) & 0xFF, (input >> 16) & 0xFF,
+                (input >> 24) & 0xFF].filter((v) => {
+                    return !!v;
+            });
+        } else if(Array.isArray(input)) {
+            return input = input.map((v) => {
+                return getBytesArray(v).flat();
+            });
+        } else {
+            input = '' + input;
+            for(let i = 0, len = input.length; i < len; ++i) {
+                let code = input.charCodeAt(i);
+                bytes.push(code & 0xFF);
+                (code & 0xFF00) && (bytes.push((code >> 8) & 0xFF));
+            }
+        }
+        return bytes;
+    };
+    // 
     var isNotBlank = (char) => {
         return !isBlank(char);
     };
@@ -28,7 +64,8 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         }
         return false;
     };
-    //
+    //JS encodes in UTF-16, same as Unicode BMP for U+0000 to U+D7FF and U+E000 to U+FFFF
+    //https://en.wikipedia.org/wiki/UTF-16
     var isCJKC = (char) => {
         if(!!char && char.length) {
             let _code = char.charCodeAt(0);
@@ -37,7 +74,6 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         return false;
     };
     //
-    var propertySetting = {writable: false, configurable: false};
     var DiffNg;
     (function(YajLib) {
         var _validOptions = {
@@ -956,16 +992,16 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
      **/
     var MD5;
     ((YajLib) => {
-        var F  = (X, Y, Z) => {
+        var F = (X, Y, Z) => {
             return (X & Y) | (~X & Z);
         };
-        var G  = (X, Y, Z) => {
+        var G = (X, Y, Z) => {
             return (X & Z) | (Y & ~Z);
         };
-        var H  = (X, Y, Z) => {
+        var H = (X, Y, Z) => {
             return X ^ Y ^ Z;
         };
-        var I  = (X, Y, Z) => {
+        var I = (X, Y, Z) => {
             return Y ^ (X | ~Z);
         };
         var rotateLeftShift = (uint32, n) => {
@@ -988,11 +1024,6 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
         ];
         //
-        var isLittleEndian = (() => {
-            var buff = new ArrayBuffer(2);
-            (new DataView(buff)).setInt16(0, 1, true);
-            return 1 == (new Int16Array(buff))[0];
-        })();
         var convert16Words = (uint8Array) => {
             var t = [];
             for(var i = 0; i < 64; i += 4) {
@@ -1005,14 +1036,8 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             return t;
         };
         //
-        MD5 = (string) => {
-            var uint8Array = [];
-            string = '' + string;
-            for(let i = 0, len = string.length; i < len; ++i) {
-                let code = string.charCodeAt(i);
-                uint8Array.push(code & 0xFF);
-                (code & 0xFF00) && (uint8Array.push((code >> 8) & 0xFF));
-            }
+        MD5 = (input) => {
+            var uint8Array = getBytesArray(input);
             var olen = uint8Array.length;
             var paddingLen;
             uint8Array.push(0x80);
@@ -1021,11 +1046,10 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             } else {
                 paddingLen = 119 - (olen & 0x3F);
             }
-            olen <<= 3;
             uint8Array = uint8Array.concat((new Array(paddingLen)).fill(0));
             uint8Array = uint8Array.concat(
-                [olen & 0xFF, (olen >> 8) & 0xFF, (olen >> 16) & 0xFF, (olen >> 24) & 0xFF],
-                [0, 0, 0, 0]
+                [(olen << 3) & 0xFF, (olen >> 5) & 0xFF, (olen >> 13) & 0xFF, (olen >> 21) & 0xFF],
+                [olen >>> 29, 0, 0, 0]
             );
             var A = 0x67452301, B = 0xefcdab89, C = 0x98badcfe, D = 0x10325476;
             for(let i = 0, len = uint8Array.length; i < len; i += 64) {
@@ -1120,11 +1144,88 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
     var Base64Encode;
     var Base64Decode;
     ((YajLib) => {
-        Base64Encode = (string) => {
-            for(let i = 0, len = string.len; i < len;) {
+        var base64CharTable = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';//=
+        var base64CharReTable = (() => {
+            var rMap = {};
+            for(let i = 0; i < 64; ++i) {
+                rMap[base64CharTable[i]] = i;
             }
+            return rMap;
+        })();
+        Base64Encode = (input) => {
+            var uint8Array = getBytesArray(input);
+            var len = uint8Array.length;
+            var encoded = '';
+            for(var i = 0, j = len - 3; i <=j ; i += 3) {
+                let indexes = [
+                    (uint8Array[i] >> 2) & 0x3F,
+                    (((uint8Array[i] & 0x3) << 4) | (uint8Array[i + 1] >> 4)) & 0x3F,
+                    (((uint8Array[i + 1] & 0xF) << 2) | (uint8Array[i + 2] >> 6)) & 0x3F,
+                    uint8Array[i + 2] & 0x3F
+                ];
+                encoded = encoded + indexes.map((v) => {
+                    return base64CharTable[v];
+                }).join('');
+            }
+            if(len - 1 == i) {
+                let singlebyte = uint8Array[i];
+                encoded = encoded
+                        + base64CharTable[(singlebyte >> 2) & 0x3F]
+                        + base64CharTable[(singlebyte & 0x3) << 4]
+                        + '==';
+            } else if(len - 2 == i) {
+                var doubleByte = uint8Array[i] | ((uint8Array[i + 1] << 8) << 2);
+                encoded = encoded
+                        + base64CharTable[(uint8Array[i] >> 2) & 0x3F]
+                        + base64CharTable[(((uint8Array[i] & 0x3) << 4) | (uint8Array[i + 1] >> 4)) & 0x3F]
+                        + base64CharTable[(uint8Array[i + 1] << 2) & 0x3F]
+                        + '=';
+            }
+            return encoded;
         };
         Base64Decode = (string) => {
+            string = '' + string;
+            var len = string.length;
+            if(len & 0x3) {
+                return '';
+            }
+            var decodedUint8Array = [];
+            for(var i = 0, j = len - 4; i < j; i += 4) {
+                let a = base64CharReTable[string[i]];
+                let b = base64CharReTable[string[i + 1]];
+                let c = base64CharReTable[string[i + 2]];
+                let d = base64CharReTable[string[i + 3]];
+                if('undefined' === typeof a || 'undefined' === typeof b
+                    || 'undefined' === typeof c || 'undefined' === typeof d) {
+                    return '';
+                }
+                decodedUint8Array = decodedUint8Array.concat([
+                    (a << 2) | (b >> 4),
+                    ((b & 0xF) << 4) | (c >> 2),
+                    ((c & 0x3) << 6) | d
+                ]);
+            }
+            let a = base64CharReTable[string[i]];
+            let b = base64CharReTable[string[i + 1]];
+            let c = base64CharReTable[string[i + 2]];
+            let d = base64CharReTable[string[i + 3]];
+            if('undefined' === typeof a || 'undefined' === typeof b) {
+                return '';
+            }
+            if('=' == string[i + 2] && '=' == string[i + 3]) {
+                decodedUint8Array.push((a << 2) | (b >> 4));
+            } else if('=' == string[i + 3] && 'undefined' != typeof c) {
+                decodedUint8Array.push((a << 2) | (b >> 4));
+                decodedUint8Array.push(((b & 0xF) << 4) | (c >> 2));
+            } else if('undefined' != typeof c && 'undefined' != typeof d) {
+                decodedUint8Array.push((a << 2) | (b >> 4));
+                decodedUint8Array.push(((b & 0xF) << 4) | (c >> 2));
+                decodedUint8Array.push(((c & 0x3) << 6) | d);
+            } else {
+                return '';
+            }
+            return decodedUint8Array.map((v) => {return String.fromCharCode(v);})
+                                    .join('');
         };
         YajLib.base64Encode || (YajLib.base64Encode = Base64Encode);
         YajLib.base64Decode || (YajLib.base64Decode = Base64Decode);
