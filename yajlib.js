@@ -24,7 +24,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         });
     })(YajLib);
     //
-    var getBytesArray = (input) => {
+    var getBytesArray = (input) => {//@TODO: add parameter encoding, and unicode converted accordingly
         var bytes = [];
         if(Number.isInteger(input)) {
             bytes = [input & 0xFF, (input >> 8) & 0xFF, (input >> 16) & 0xFF,
@@ -38,9 +38,12 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         } else {
             input = '' + input;
             for(let i = 0, len = input.length; i < len; ++i) {
-                let code = input.charCodeAt(i);
+                //let code = input.charCodeAt(i);//UTF-16, at most 4 bytes, most time only 2 bytes
+                let code = input.codePointAt(i);//Unicode, for BMP(Basic Multi-lingual Plane), same as charCodeAt
                 bytes.push(code & 0xFF);
-                (code & 0xFF00) && (bytes.push((code >> 8) & 0xFF));
+                (code & 0x0000FF00) && (bytes.push((code >>  8) & 0xFF));
+                (code & 0x00FF0000) && (bytes.push((code >> 16) & 0xFF));
+                (code & 0xFF000000) && (bytes.push((code >> 24) & 0xFF));
             }
         }
         return bytes;
