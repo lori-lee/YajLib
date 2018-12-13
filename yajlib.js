@@ -452,6 +452,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
     }(YajLib));
     //
     var HTMLTokenizer;
+    var StripTag;
     (function(YajLib) {
         //
         var _isLowercase = (char) => {
@@ -611,9 +612,27 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             storeTagInfo();
             return tokens;
         };
+        //
+        StripTag = (string, tagsReserved) => {
+            var tokens = HTMLTokenizer(string);
+            tagsReserved = !!tagsReserved && Array.isArray(tagsReserved) ? tagsReserved : [];
+            tagsReserved = tagsReserved.map((v) => {
+                return v.replace(/\s+/, '')
+                        .toUpperCase();
+            });
+            return tokens.map((v) => {
+                return !v.tag ? v.content
+                              : (tagsReserved.indexOf(v.tag.toUpperCase()) >= 0
+                                  ? v.prefix || v.suffix
+                                  : '');
+            }).join('');
+        };
+        //
         YajLib.htmlTokenizer || (YajLib.htmlTokenizer = HTMLTokenizer);
+        YajLib.stripTag      || (YajLib.stripTag = StripTag);
         Object.defineProperties(YajLib, {
-            htmlTokenizer: propertySetting
+            htmlTokenizer: propertySetting,
+            stripTag     : propertySetting
         });
     }(YajLib));
     //
@@ -1190,7 +1209,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             string = '' + string;
             var len = string.length;
             if(len & 0x3) {
-                return '';
+                return false;
             }
             var decodedUint8Array = [];
             for(var i = 0, j = len - 4; i < j; i += 4) {
@@ -1200,7 +1219,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                 let d = base64CharReTable[string[i + 3]];
                 if('undefined' === typeof a || 'undefined' === typeof b
                     || 'undefined' === typeof c || 'undefined' === typeof d) {
-                    return '';
+                    return false;
                 }
                 decodedUint8Array = decodedUint8Array.concat([
                     (a << 2) | (b >> 4),
@@ -1213,7 +1232,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             let c = base64CharReTable[string[i + 2]];
             let d = base64CharReTable[string[i + 3]];
             if('undefined' === typeof a || 'undefined' === typeof b) {
-                return '';
+                return false;
             }
             if('=' == string[i + 2] && '=' == string[i + 3]) {
                 decodedUint8Array.push((a << 2) | (b >> 4));
@@ -1225,10 +1244,11 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                 decodedUint8Array.push(((b & 0xF) << 4) | (c >> 2));
                 decodedUint8Array.push(((c & 0x3) << 6) | d);
             } else {
-                return '';
+                return false;
             }
-            return decodedUint8Array.map((v) => {return String.fromCharCode(v);})
-                                    .join('');
+            return decodedUint8Array.map((v) => {
+                return String.fromCharCode(v);
+            }).join('');
         };
         YajLib.base64Encode || (YajLib.base64Encode = Base64Encode);
         YajLib.base64Decode || (YajLib.base64Decode = Base64Decode);
