@@ -2,7 +2,7 @@
  * @Author: Lori Lee
  * @Email:  leejqy@163.com
  *
- * @WARNING: NEVER change below codes unless you are clear what you are doing.
+ * @WARNING: NEVER change below codes until you are clear what you are doing.
  *
  * All rights reserved.
  *
@@ -487,19 +487,36 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             var suffixTagHtml = '';
             var tagContent    = '';
             var quoteSymbal   = '';
+            var attrName      = '';
+            var attrValue     = '';
+            var attrNameValues= [];
             var storeTagInfo  = function() {
                 if(!!tagName + !!tagContent) {
                     tokens.push({
                         tag    : tagName,
                         prefix : prefixTagHtml,
                         suffix : suffixTagHtml,
-                        content: tagContent
+                        content: tagContent,
+                        attrSet: attrNameValues
                     });
                     tagName       =
                     prefixTagHtml =
                     suffixTagHtml =
                     tagContent    =
                     quoteSymbal   = '';
+                    attrNameValues= [];
+                }
+            };
+            var storeAttrValue = function() {
+                if(attrName || attrValue) {
+                    if(attrName || attrValue) {
+                        attrNameValues.push({
+                            attr : attrName,
+                            value: attrValue
+                        });
+                    }
+                    attrName  =
+                    attrValue = '';
                 }
             };
             for(let i = 0, len = string.length; i < len;) {
@@ -545,13 +562,16 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                     }
                 } else if(2 == status) {
                     if(_isAlphaNum(string[i]) || '-' == string[i] || '_' == string[i]) {
+                        attrName = attrName + string[i];
                         prefixTagHtml = prefixTagHtml + string[i++];
                     } else if('/' == string[i] && '>' == string[i + 1]) {
                         prefixTagHtml = prefixTagHtml + string[i++] + string[i++];
+                        storeAttrValue();
                         storeTagInfo();
                         status = 0;
                     } else if('>' == string[i]) {
                         prefixTagHtml = prefixTagHtml + string[i++];
+                        storeAttrValue();
                         storeTagInfo();
                         status = 0;
                     } else {
@@ -576,6 +596,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                             while(isBlank(string[i])) {
                                 prefixTagHtml = prefixTagHtml + string[i++];
                             }
+                            storeAttrValue();
                             status = 2;
                         } else {
                             prefixTagHtml = prefixTagHtml + string[i++];
@@ -583,8 +604,11 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                     } else {
                         while('\\' == string[i] && '\\' == string[i + 1]) {
                             prefixTagHtml = prefixTagHtml + '\\\\';
+                            attrValue     = attrValue + '\\\\';
+                            i += 2;
                         }
                         if(!_isQuote(string[i])) {
+                            attrValue = attrValue + string[i];
                             prefixTagHtml = prefixTagHtml + string[i++];
                         }
                     }
@@ -609,6 +633,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                     }
                 }
             }
+            storeAttrValue();
             storeTagInfo();
             return tokens;
         };
