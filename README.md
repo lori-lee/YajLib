@@ -1,6 +1,6 @@
 # YajLib (support: ES6 or above)
 ## YajLib is a lightweight js lib which is written by Lori Lee(leejqy@163.com)
-## Currently only a few classes / functions (diffNg / tokenizer / htmlTokenizer / lcdClock / md5) are exported.
+## Currently only a few classes / functions (diffNg / tokenizer / htmlTokenizer /stripTag / lcdClock / md5 / base64Encode / base64Decode) are exported.
 ## Example
 ### diff between 2 files / multi-line texts:
 #### var options= null;//Designed for advanced UI customize. if null default view will be used.
@@ -25,4 +25,4 @@
 #### YajLib.base64Encode('abc')  ==> output: YWJj
 #### YajLib.base64Decode('YWJj') ==> output: abc
 ### Note: Unicode will be used both for md5 & base64Encode (@TODO: add parameter encoding:(utf-8 etc), and evaluate binary bits according to it).
-#### More examples, see the html/js code of file diffme.html
+### More examples, see the html/js code of file diffme.html
