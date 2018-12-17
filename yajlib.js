@@ -608,8 +608,14 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                             i += 2;
                         }
                         if(!_isQuote(string[i])) {
-                            attrValue = attrValue + string[i];
-                            prefixTagHtml = prefixTagHtml + string[i++];
+                            if(!quoteSymbal
+                               && ('>' == string[i]
+                                   || ('/' == string[i] && '>' == string[i + 1]))) {
+                                status = 2;
+                            } else {
+                                attrValue = attrValue + string[i];
+                                prefixTagHtml = prefixTagHtml + string[i++];
+                            }
                         }
                     }
                 } else if(4 == status) {
