@@ -1288,4 +1288,251 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             base64Decode: propertySetting
         });
     })(YajLib);
+    //
+    var DES;
+    ((YajLib) => {
+        var IP = [
+            57, 49, 41, 33, 25, 17,  9,  1,
+            59, 51, 43, 35, 27, 19, 11,  3,
+            61, 53, 45, 37, 29, 21, 13,  5,
+            63, 55, 47, 39, 31, 23, 15,  7,
+            56, 48, 40, 32, 24, 16,  8,  0,
+            58, 50, 42, 34, 26, 18, 10,  2,
+            60, 52, 44, 36, 28, 20, 12,  4,
+            62, 54, 46, 38, 30, 22, 14,  6
+        ];
+        var RIP = ((IP) => {
+            let rip = new Array(64);
+            for(let i = 0; i < 64; ++i) {
+                rip[IP[i]] = i;
+            }
+            return rip;
+        })(IP);
+        var doPerm = (uint8Array8, PermMap) => {
+            let r = (new Array(8)).fill(0);
+            let t = new Array(64);
+            for(let i = 0; i < 64; ++i) {
+                let byteIndex = PermMap[i] >> 3;
+                let byteOffset= PermMap[i] & 0x7;
+                t[i] = uint8Array8[byteIndex] & (1 << byteOffset);
+            }
+            for(let i = 0; i < 64; ++i) {
+                let byteIndex = i >> 3;
+                let byteOffset= i & 0x7;
+                r[byteIndex] |= t[i] << byteOffset;
+            }
+            return r;
+        };
+        var exDBox = (uint8Array4) => {
+            let Bit48 = (new Array(48)).fill(0);
+            for(let i = 0; i < 48; i += 6) {
+                let offset= i % 6;
+                let group = (i - offset) / 6;
+                let byte  = group >> 1;
+                let value = (uint8Array4[byte] >> ((group & 1) ? 4 : 0)) & 0xF;
+                let prev  = ((group & 1) ? uint8Array4[byte] : (uint8Array4[(byte + 3) & 3] >> 4)) & 0xF;
+                let next  = ((group & 1) ? uint8Array4[(byte + 1) & 3] : (uint8Array4[byte] >> 4)) & 0xF;
+                Bit48[i]      = prev  & 0x8;
+                Bit48[i + 1]  = value & 0x1;
+                Bit48[i + 2]  = value & 0x2;
+                Bit48[i + 3]  = value & 0x4;
+                Bit48[i + 4]  = value & 0x8;
+                Bit48[i + 5]  = next  & 0x1;
+            }
+            return Bit48;
+        };
+        var straitDBoxPerm = [
+            15,  6, 19, 20, 28, 11, 27, 16,
+             0, 14, 24, 25,  4, 17, 30,  9,
+             1,  7, 23, 13, 31, 26,  2,  8,
+            18, 12, 29,  5, 21, 10,  3, 24
+        ];
+        var straigtDBox = (uinit8Array4) => {
+            var r = (new Array(4)).fill(0);
+            for(let i = 0; i < 4; i++) {
+                for(let j = 0; j < 8; ++j) {
+                    let bit    = straitDBoxPerm[(i << 3) + j];
+                    let byte   = bit >> 3;
+                    let offset = bit & 0x7;
+                    r[i] |= ((uinit8Array4[byte] >> offset) & 0x1) << j;
+                }
+            }
+            return r;
+        };
+        var keyParityDropTable = [
+            56, 48, 40, 32, 24, 16,  8,  0,
+            57, 49, 41, 33, 25, 17,  9,  1,
+            58, 50, 42, 34, 26, 18, 10,  2,
+            59, 51, 43, 35, 62, 54, 46, 38,
+            30, 22, 14,  6, 61, 53, 45, 37,
+            29, 21, 13,  5, 60, 52, 44, 36,
+            28, 20, 12,  4, 27, 19, 11,  3
+        ];
+        var get56Key = (uint8Array8) => {
+            var r = (new Array(56)).fill(0);
+            for(let i = 0; i < 56; ++i) {
+                let bit   = keyParityDropTable[i];
+                let byte  = bit >> 3;
+                let offset= bit & 0x7;
+                r[i] = (uint8Array8[byte] & (1 << offset)) >> offset;
+            }
+            return r;
+        };
+        var keyCompressTable = [
+            13, 16, 10, 23,  0,  4,  2, 27,
+            14,  5, 20,  9, 22, 18, 11,  3,
+            25,  7, 15,  6, 26, 19, 12,  1,
+            40, 51, 30, 36, 46, 54, 29, 39,
+            50, 44, 32, 47, 43, 48, 38, 55,
+            33, 52, 45, 41, 49, 35, 28, 31
+        ];
+        var Compress56Key48 = (BitKey56) => {
+            var r = (new Array(48)).fill(0);
+            for(let i = 0; i < 48; ++i) {
+                r[i] = BitKey56[keyCompressTable[i]];
+            }
+            return r;
+        };
+        var SBox1 = [
+            14,  4, 13,  1,  2, 15, 11,  8,  3, 10,  6, 12,  5,  9,  0,  7,
+             0, 15,  7,  4, 14,  2, 13, 10,  3,  6, 12, 11,  9,  5,  3,  8,
+             4,  1, 14,  8, 13,  6,  2, 11, 15, 12,  9,  7,  3, 10,  5,  0,
+            15, 12,  8,  2,  4,  9,  1,  7,  5, 11,  3, 14, 10,  0,  6, 13
+        ];
+        var SBox2 = [
+            15,  1,  8, 14,  6, 11,  3,  4,  9,  7,  2, 13, 12,  0,  5, 10,
+             3, 13,  4,  7, 15,  2,  8, 14, 12,  0,  1, 10,  6,  9, 11,  5,
+             0, 14,  7, 11, 10,  4, 13,  1,  5,  8, 12,  6,  9,  3,  2, 15,
+            13,  8, 10,  1,  3, 15,  4,  2, 11,  6,  7, 12,  0,  5, 14,  9
+        ];
+        var SBox3 = [
+            10,  0,  9, 14,  6,  3, 15,  5,  1, 13, 12,  7, 11,  4,  2,  8,
+            13,  7,  0,  9,  3,  4,  6, 10,  2,  8,  5, 14, 12, 11, 15,  1,
+            13,  6,  4,  9,  8, 15,  3,  0, 11,  1,  2, 12,  5, 10, 14,  7,
+             1, 10, 13,  0,  6,  9,  8,  7,  4, 15, 14,  3, 11,  5,  2, 12
+        ];
+        var SBox4 = [
+             7, 13, 14,  3,  0,  6,  9, 10,  1,  2,  8,  5, 11, 12,  4, 15,
+            13,  8, 11,  5,  6, 15,  0,  3,  4,  7,  2, 12,  1, 10, 14,  9,
+            10,  6,  9,  0, 12, 11,  7, 13, 15,  1,  3, 14,  5,  2,  8,  4,
+             3, 15,  0,  6, 10,  1, 13,  8,  9,  4,  5, 11, 12,  7,  2, 14
+        ];
+        var SBox5 = [
+             2, 12,  4,  1,  7, 10, 11,  6,  8,  5,  3, 15, 13,  0, 14,  9,
+            14, 11,  2, 12,  4,  7, 13,  1,  5,  0, 15, 10,  3,  9,  8,  6,
+             4,  2,  1, 11, 10, 13,  7,  8, 15,  9, 12,  5,  6,  3,  0, 14,
+            11,  8, 12,  7,  1, 14,  2, 13,  6, 15,  0,  9, 10,  4,  5,  3
+        ];
+        var SBox6 = [
+            12,  1, 10, 15,  9,  2,  6,  8,  0, 13,  3,  4, 14,  7,  5, 11,
+            10, 15,  4,  2,  7, 12,  9,  5,  6,  1, 13, 14,  0, 11,  3,  8,
+             9, 14, 15,  5,  2,  8, 12,  3,  7,  0,  4, 10,  1, 13, 11,  6,
+             4,  3,  2, 12,  9,  5, 15, 10, 11, 14,  1,  7, 10,  0,  8, 13
+        ];
+        var SBox7 = [
+             4, 11,  2, 14, 15,  0,  8, 13,  3, 12,  9,  7,  5, 10,  6,  1,
+            13,  0, 11,  7,  4,  9,  1, 10, 14,  3,  5, 12,  2, 15,  8,  6,
+             1,  4, 11, 13, 12,  3,  7, 14, 10, 15,  6,  8,  0,  5,  9,  2,
+             6, 11, 13,  8,  1,  4, 10,  7,  9,  5,  0, 15, 14,  2,  3, 12
+        ];
+        var SBox8 = [
+            13,  2,  8,  4,  6, 15, 11,  1, 10,  9,  3, 14,  5,  0, 12,  7,
+             1, 15, 13,  8, 10,  3,  7,  4, 12,  5,  6, 11, 10, 14,  9,  2,
+             7, 11,  4,  1,  9, 12, 14,  2,  0,  6, 10, 10, 15,  3,  5,  8,
+             2,  1, 14,  7,  4, 10,  8, 13, 15, 12,  9,  9,  3,  5,  6, 11,
+        ];
+        var SSTransform = (BitArray6, SBox) => {
+            var row = (BitArray6[0] << 1) | (BitArray6[5]);
+            var col = (BitArray6[1] << 3) | (BitArray6[2] << 2) | (BitArray6[3] << 1) | BitArray6[4];
+            return SBox[(row << 4) + col];
+        };
+        var SBoxSet = [
+            SBox1, SBox2, SBox3, SBox4, SBox5, SBox6, SBox7, SBox8
+        ];
+        var STransform = (BitArray48) => {
+            var uint8Array4 = (new Array(8)).fill(0);
+            for(var i = 0, j = 0; j < 8; j += 2, i += 12) {
+                var BitArray6  = BitArray48.slice(i, 6);
+                uint8Array4[j] = SSTransform(BitArray6, SBoxSet[j]);
+                uint8Array4[j]|= SSTransform(BitArray6, SBoxSet[j + 1]) << 4;
+            }
+            return uint8Array4;
+        };
+        var F = (R, K) => {
+            var expandedRXORK = exDBox(R).map((v, i) => {
+                return v & K[i];
+            });
+            return straigtDBox(STransform(expandedRXORK));
+        };
+        var padding64 = (uint8Array) => {
+            uint8Array.push(0);
+            var bytes = uint8Array.length & 0x7;
+            uint8Array= uint8Array.concat((new Array(bytes - 1)).fill(0));
+            uint8Array.push(bytes);
+            return uint8Array;
+        };
+        var rotateLeftShift = (origBits, bits) => {
+            var r = origBits.slice(bits, origBits.length);
+            for(let i = 0; i < bits; ++i) {
+                r.push(origBits[i]);
+            }
+            return r;
+        };
+        //
+        DES = function(key) {
+            key = getBytesArray(key);
+            if(key.length < 8) {
+                key = key.concat((new Array(8 - key.length).fill(0)));
+            }
+            this.key = get56Key(key.slice(0, 8));
+            //
+            this.low28 = this.key.slice(0, 28);
+            this.high28= this.key.slice(28, 56);
+            this.roundKeys = [];//1: Round[1/2/9/16], 2: others
+            for(let i = 0; i < 16; ++i) {
+                let shiftBits = [0, 1, 8, 15].indexOf(i) >= 0 ? 1 : 2;
+                let left = rotateLeftShift(this.low28, shiftBits);
+                let right= rotateLeftShift(this.high28, shiftBits);
+                this.roundKeys.push(Compress56Key48(left.concat(right)));
+            }
+        };
+        //Feistel encryption workflow
+        DES.prototype = {
+            encrypt: function(plaintext) {
+                var uint8Array = getBytesArray(plaintext);
+                uint8Array = padding64(uint8Array);
+                var len    = uint8Array.length;
+                var cipher = [];
+                for(let i = 0; i < len; i += 8) {
+                    let plaintxt8Uint8Array = uint8Array.slice(i, 8);
+                    let uint8Array8 = doPerm(plaintxt8Uint8Array, IP);
+                    let L = uint8Array8.slice(0, 4);
+                    let R = uint8Array8.slice(4, 8);
+                    for(let j = 0; j < 16; ++j) {
+                        //L XOR F(R, K);
+                        L = F(R, this.roundKeys[j]).map((v, i) => {
+                            return L[i] ^ v;
+                        });
+                        [L, R] = [R, L];
+                    }
+                    uint8Array8 = doPerm(plaintxt8Uint8Array, RIP);
+                    cipher = cipher.concat(uint8Array8);
+                }
+                return YajLib.base64Encode(cipher);
+            },
+            decrypt: function(cipher) {
+                var uint8Array = getBytesArray(cipher);
+                var len = uint8Array.length;
+                if(!len || len & 0x7) {
+                    return false;
+                }
+                for(var i = 0; i < len; i += 8) {
+                }
+            }
+        };
+        YajLib.DES || (YajLib.DES = DES);
+        Object.defineProperties(YajLib, {
+            DES: propertySetting,
+        });
+    })(YajLib);
 }(window));
