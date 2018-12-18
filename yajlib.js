@@ -1341,17 +1341,17 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             }
             return Bit48;
         };
-        var straitDBoxPerm = [
+        var straightDBoxPerm = [
             15,  6, 19, 20, 28, 11, 27, 16,
              0, 14, 24, 25,  4, 17, 30,  9,
              1,  7, 23, 13, 31, 26,  2,  8,
             18, 12, 29,  5, 21, 10,  3, 24
         ];
-        var straigtDBox = (uinit8Array4) => {
+        var straightDBox = (uinit8Array4) => {
             var r = (new Array(4)).fill(0);
             for(let i = 0; i < 4; i++) {
                 for(let j = 0; j < 8; ++j) {
-                    let bit    = straitDBoxPerm[(i << 3) + j];
+                    let bit    = straightDBoxPerm[(i << 3) + j];
                     let byte   = bit >> 3;
                     let offset = bit & 0x7;
                     r[i] |= ((uinit8Array4[byte] >> offset) & 0x1) << j;
@@ -1462,7 +1462,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             var expandedRXORK = exDBox(R).map((v, i) => {
                 return v & K[i];
             });
-            return straigtDBox(STransform(expandedRXORK));
+            return straightDBox(STransform(expandedRXORK));
         };
         var padding64 = (uint8Array) => {
             uint8Array.push(0);
