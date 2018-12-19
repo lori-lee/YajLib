@@ -32,9 +32,9 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                     return !!v;
             });
         } else if(Array.isArray(input)) {
-            return input = input.map((v) => {
-                return getBytesArray(v).flat();
-            });
+            return input.map((v) => {
+                                return getBytesArray(v).flat();
+                        }).flat();
         } else {
             input = '' + input;
             for(let i = 0, len = input.length; i < len; ++i) {
@@ -1278,7 +1278,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                 return false;
             }
             return decodedUint8Array.map((v) => {
-                return String.fromCharCode(v);
+                return String.fromCodePoint(v);
             }).join('');
         };
         YajLib.base64Encode || (YajLib.base64Encode = Base64Encode);
@@ -1314,7 +1314,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             for(let i = 0; i < 64; ++i) {
                 let byteIndex = PermMap[i] >> 3;
                 let byteOffset= PermMap[i] & 0x7;
-                t[i] = uint8Array8[byteIndex] & (1 << byteOffset);
+                t[i] = (uint8Array8[byteIndex] >> byteOffset) & 0x1;
             }
             for(let i = 0; i < 64; ++i) {
                 let byteIndex = i >> 3;
@@ -1332,12 +1332,12 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                 let value = (uint8Array4[byte] >> ((group & 1) ? 4 : 0)) & 0xF;
                 let prev  = ((group & 1) ? uint8Array4[byte] : (uint8Array4[(byte + 3) & 3] >> 4)) & 0xF;
                 let next  = ((group & 1) ? uint8Array4[(byte + 1) & 3] : (uint8Array4[byte] >> 4)) & 0xF;
-                Bit48[i]      = prev  & 0x8;
-                Bit48[i + 1]  = value & 0x1;
-                Bit48[i + 2]  = value & 0x2;
-                Bit48[i + 3]  = value & 0x4;
-                Bit48[i + 4]  = value & 0x8;
-                Bit48[i + 5]  = next  & 0x1;
+                Bit48[i]      = (prev  >> 3) & 0x1;
+                Bit48[i + 1]  = (value     ) & 0x1;
+                Bit48[i + 2]  = (value >> 1) & 0x1;
+                Bit48[i + 3]  = (value >> 2) & 0x1;
+                Bit48[i + 4]  = (value >> 3) & 0x1;
+                Bit48[i + 5]  = (next      ) & 0x1;
             }
             return Bit48;
         };
@@ -1374,7 +1374,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                 let bit   = keyParityDropTable[i];
                 let byte  = bit >> 3;
                 let offset= bit & 0x7;
-                r[i] = (uint8Array8[byte] & (1 << offset)) >> offset;
+                r[i] = (uint8Array8[byte] >> offset) & 0x1;
             }
             return r;
         };
@@ -1452,23 +1452,22 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         var STransform = (BitArray48) => {
             var uint8Array4 = (new Array(8)).fill(0);
             for(var i = 0, j = 0; j < 8; j += 2, i += 12) {
-                var BitArray6  = BitArray48.slice(i, 6);
-                uint8Array4[j] = SSTransform(BitArray6, SBoxSet[j]);
-                uint8Array4[j]|= SSTransform(BitArray6, SBoxSet[j + 1]) << 4;
+                uint8Array4[j] = SSTransform(BitArray48.slice(i    , i +  6), SBoxSet[j]);
+                uint8Array4[j]|= SSTransform(BitArray48.slice(i + 6, i + 12), SBoxSet[j + 1]) << 4;
             }
             return uint8Array4;
         };
         var F = (R, K) => {
             var expandedRXORK = exDBox(R).map((v, i) => {
-                return v & K[i];
+                return v ^ K[i];
             });
             return straightDBox(STransform(expandedRXORK));
         };
         var padding64 = (uint8Array) => {
             uint8Array.push(0);
             var bytes = uint8Array.length & 0x7;
-            uint8Array= uint8Array.concat((new Array(bytes - 1)).fill(0));
-            uint8Array.push(bytes);
+            uint8Array= uint8Array.concat((new Array(7 - bytes)).fill(0));
+            uint8Array.push(9 - bytes);
             return uint8Array;
         };
         var rotateLeftShift = (origBits, bits) => {
@@ -1495,6 +1494,12 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                 let right= rotateLeftShift(this.high28, shiftBits);
                 this.roundKeys.push(Compress56Key48(left.concat(right)));
             }
+            Object.defineProperties(this, {
+                key      : propertySetting,
+                low28    : propertySetting,
+                high28   : propertySetting,
+                roundKeys: propertySetting
+            });
         };
         //Feistel encryption workflow
         DES.prototype = {
@@ -1515,19 +1520,38 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                         });
                         [L, R] = [R, L];
                     }
-                    uint8Array8 = doPerm(plaintxt8Uint8Array, RIP);
+                    uint8Array8 = doPerm(L.concat(R), RIP);
                     cipher = cipher.concat(uint8Array8);
                 }
                 return YajLib.base64Encode(cipher);
             },
             decrypt: function(cipher) {
-                var uint8Array = getBytesArray(cipher);
+                var uint8Array = getBytesArray(YajLib.base64Decode(cipher));
                 var len = uint8Array.length;
+                var plaintxt = [];
                 if(!len || len & 0x7) {
                     return false;
                 }
-                for(var i = 0; i < len; i += 8) {
+                for(let i = 0; i < len; i += 8) {
+                    let cipher8Uint8Array = uint8Array.slice(i, 8);
+                    let uint8Array8 = doPerm(cipher8Uint8Array, IP);
+                    let L = uint8Array8.slice(0, 4);
+                    let R = uint8Array8.slice(4, 8);
+                    for(let j = 15; j >= 0; --j) {
+                        //L XOR F(R, K);
+                        R = F(L, this.roundKeys[j]).map((v, i) => {
+                            return R[i] ^ v;
+                        });
+                        [L, R] = [R, L];
+                    }
+                    uint8Array8 = doPerm(L.concat(R), RIP);
+                    plaintxt    = plaintxt.concat(uint8Array8);
                 }
+                var paddingLen = plaintxt.pop();
+                plaintxt = plaintxt.slice(0, plaintxt.length - paddingLen + 1);
+                return plaintxt.map((v) => {
+                    return String.fromCodePoint(v);
+                });
             }
         };
         YajLib.DES || (YajLib.DES = DES);
