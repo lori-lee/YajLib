@@ -1287,6 +1287,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
     })(YajLib);
     //@See: https://academic.csuohio.edu/yuc/security/Chapter_06_Data_Encription_Standard.pdf
     var DES;
+    var TriDES;
     ((YajLib) => {
         var IP = [
             57, 49, 41, 33, 25, 17,  9,  1,
@@ -1492,12 +1493,10 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                     let right= rotateLeftShift(this.high28, shiftBits);
                     this.roundKeys.push(Compress56Key48(left.concat(right)));
                 }
-                Object.defineProperties(this, {
-                    key      : propertySetting,
-                    low28    : propertySetting,
-                    high28   : propertySetting,
-                    roundKeys: propertySetting
-                });
+                Object.freeze(this.key);
+                Object.freeze(this.low28);
+                Object.freeze(this.high28);
+                Object.freeze(this.roundKeys);
             } else {
                 return new DES(key);
             }
@@ -1555,9 +1554,55 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                 }).join('');
             }
         };
-        YajLib.DES || (YajLib.DES = DES);
+        //3DES
+        TriDES = function(keywords) {
+            if(this instanceof TriDES) {
+                keywords = '' + keywords;
+                this.keywords = [
+                    keywords.slice( 0,  8),
+                    keywords.slice( 8, 16),
+                    keywords.slice(16, 24)
+                ];
+                this.desSet = [
+                    new DES(this.keywords[0]),
+                    new DES(this.keywords[1]),
+                    new DES(this.keywords[2])
+                ];
+                Object.freeze(this.keywords);
+                Object.freeze(this.desSet);
+                for(let i = 0; i < 3; ++i) {
+                    Object.freeze(this.keywords[i]);
+                    Object.freeze(this.desSet[i]);
+                }
+            } else {
+                return new TriDES(keywords);
+            }
+        };
+        //
+        TriDES.prototype = {
+            encrypt: function(plaintxt) {
+                var cipher = plaintxt;
+                for(let i = 0; i < 3; ++i) {
+                    cipher = this.desSet[i].encrypt(cipher);
+                }
+                return cipher;
+            },
+            decrypt: function(cipher) {
+                var plaintxt = cipher;
+                for(let i = 2; i >= 0; --i) {
+                    if(false === plaintxt) {
+                        break;
+                    }
+                    plaintxt = this.desSet[i].decrypt(plaintxt);
+                }
+                return plaintxt;
+            }
+        };
+        YajLib.DES    || (YajLib.DES    = DES);
+        YajLib.triDES || (YajLib.triDES = TriDES);
         Object.defineProperties(YajLib, {
-            DES: propertySetting,
+            DES   : propertySetting,
+            triDES: propertySetting
         });
     })(YajLib);
 }(window));
