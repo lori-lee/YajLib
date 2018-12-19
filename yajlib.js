@@ -27,23 +27,20 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
     var getBytesArray = (input) => {//@TODO: add parameter encoding, and unicode converted accordingly
         var bytes = [];
         if(Number.isInteger(input)) {
-            bytes = [input & 0xFF, (input >> 8) & 0xFF, (input >> 16) & 0xFF,
-                (input >> 24) & 0xFF].filter((v) => {
-                    return !!v;
-            });
+            bytes.push(input & 0xFF);
+            (input & 0xFFFFFF00) && (bytes.push((input >>  8) & 0xFF));
+            (input & 0xFFFF0000) && (bytes.push((input >> 16) & 0xFF));
+            (input & 0xFF000000) && (bytes.push((input >> 24) & 0xFF));
         } else if(Array.isArray(input)) {
-            return input.map((v) => {
-                return getBytesArray(v).flat();
+            bytes = input.map((v) => {
+                return getBytesArray(v);
             }).flat();
         } else {
             input = '' + input;
             for(let i = 0, len = input.length; i < len; ++i) {
                 //let code = input.charCodeAt(i);//UTF-16, at most 4 bytes, most time only 2 bytes
                 let code = input.codePointAt(i);//Unicode, for BMP(Basic Multi-lingual Plane), same as charCodeAt
-                bytes.push(code & 0xFF);
-                (code & 0xFFFFFF00) && (bytes.push((code >>  8) & 0xFF));
-                (code & 0xFFFF0000) && (bytes.push((code >> 16) & 0xFF));
-                (code & 0xFF000000) && (bytes.push((code >> 24) & 0xFF));
+                bytes    = bytes.concat(getBytesArray(code));
             }
         }
         return bytes;
@@ -1513,7 +1510,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                 var len    = uint8Array.length;
                 var cipher = [];
                 for(let i = 0; i < len; i += 8) {
-                    let plaintxt8Uint8Array = uint8Array.slice(i, 8);
+                    let plaintxt8Uint8Array = uint8Array.slice(i, i + 8);
                     let uint8Array8 = doPerm(plaintxt8Uint8Array, IP);
                     let L = uint8Array8.slice(0, 4);
                     let R = uint8Array8.slice(4, 8);
@@ -1537,7 +1534,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                     return false;
                 }
                 for(let i = 0; i < len; i += 8) {
-                    let cipher8Uint8Array = uint8Array.slice(i, 8);
+                    let cipher8Uint8Array = uint8Array.slice(i, i + 8);
                     let uint8Array8 = doPerm(cipher8Uint8Array, IP);
                     let L = uint8Array8.slice(0, 4);
                     let R = uint8Array8.slice(4, 8);
