@@ -2,12 +2,12 @@
  * @Author: Lori Lee
  * @Email:  leejqy@163.com
  *
- * @WARNING: NEVER change below codes until you are clear what you are doing.
+ * @WARNING: NEVER change below codes unless you are clear what you are doing.
  *
  * All rights reserved.
  *
  **/
-var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1.1'};
+var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1.2'};
 (function(window) {
     'use strict';
     var propertySetting = {writable: false, configurable: false};
@@ -1557,7 +1557,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         //3DES
         TriDES = function(keywords) {
             if(this instanceof TriDES) {
-                keywords = '' + keywords;
+                keywords = getBytesArray(keywords);
                 this.keywords = [
                     keywords.slice( 0,  8),
                     keywords.slice( 8, 16),
@@ -1605,4 +1605,16 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             triDES: propertySetting
         });
     })(YajLib);
+    var AES;
+    ((YajLib) => {
+        AES = function(keywords) {
+        };
+        AES.prototype = {
+            encrypt: function(plaintxt) {
+            },
+            decrypt: function(cipher) {
+            }
+        };
+    })(YajLib);
+    window.YY || (window.YY = YajLib);
 }(window));
