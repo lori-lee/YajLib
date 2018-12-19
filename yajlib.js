@@ -33,8 +33,8 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             });
         } else if(Array.isArray(input)) {
             return input.map((v) => {
-                                return getBytesArray(v).flat();
-                        }).flat();
+                return getBytesArray(v).flat();
+            }).flat();
         } else {
             input = '' + input;
             for(let i = 0, len = input.length; i < len; ++i) {
@@ -1551,7 +1551,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                 plaintxt = plaintxt.slice(0, plaintxt.length - paddingLen + 1);
                 return plaintxt.map((v) => {
                     return String.fromCodePoint(v);
-                });
+                }).join('');
             }
         };
         YajLib.DES || (YajLib.DES = DES);
