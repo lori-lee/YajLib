@@ -1288,7 +1288,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             base64Decode: propertySetting
         });
     })(YajLib);
-    //
+    //@See: https://academic.csuohio.edu/yuc/security/Chapter_06_Data_Encription_Standard.pdf
     var DES;
     ((YajLib) => {
         var IP = [
