@@ -25,4 +25,13 @@
 #### YajLib.base64Encode('abc')  ==> output: YWJj
 #### YajLib.base64Decode('YWJj') ==> output: abc
 ### Note: Unicode will be used both for md5 & base64Encode (@TODO: add parameter encoding:(utf-8 etc), and evaluate binary bits according to it).
+### DES encrypt / decrypt
+#### var des = new YajLib.DES('keywords');
+#### des.encrypt('a');  ==> output: xAIREAwA1M=
+#### des.decrypt(des.encrypt('a')); ==> output: a
+#### des.encrypt('ab');  ==> output: Y/IAhEIDE7o=
+#### des.decrypt(des.encrypt('ab')); ==> output: ab
+#### des.encrypt('abc');  ==> output: YsJngMMwEk0=
+#### des.decrypt(des.encrypt('abc')); ==> output: abc
+
 ### More examples, see the html/js code of file diffme.html
