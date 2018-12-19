@@ -1479,27 +1479,31 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         };
         //
         DES = function(key) {
-            key = getBytesArray(key);
-            if(key.length < 8) {
-                key = key.concat((new Array(8 - key.length).fill(0)));
+            if(this instanceof DES) {
+                key = getBytesArray(key);
+                if(key.length < 8) {
+                    key = key.concat((new Array(8 - key.length).fill(0)));
+                }
+                this.key = get56Key(key.slice(0, 8));
+                //
+                this.low28 = this.key.slice(0, 28);
+                this.high28= this.key.slice(28, 56);
+                this.roundKeys = [];//1: Round[1/2/9/16], 2: others
+                for(let i = 0; i < 16; ++i) {
+                    let shiftBits = [0, 1, 8, 15].indexOf(i) >= 0 ? 1 : 2;
+                    let left = rotateLeftShift(this.low28, shiftBits);
+                    let right= rotateLeftShift(this.high28, shiftBits);
+                    this.roundKeys.push(Compress56Key48(left.concat(right)));
+                }
+                Object.defineProperties(this, {
+                    key      : propertySetting,
+                    low28    : propertySetting,
+                    high28   : propertySetting,
+                    roundKeys: propertySetting
+                });
+            } else {
+                return new DES(key);
             }
-            this.key = get56Key(key.slice(0, 8));
-            //
-            this.low28 = this.key.slice(0, 28);
-            this.high28= this.key.slice(28, 56);
-            this.roundKeys = [];//1: Round[1/2/9/16], 2: others
-            for(let i = 0; i < 16; ++i) {
-                let shiftBits = [0, 1, 8, 15].indexOf(i) >= 0 ? 1 : 2;
-                let left = rotateLeftShift(this.low28, shiftBits);
-                let right= rotateLeftShift(this.high28, shiftBits);
-                this.roundKeys.push(Compress56Key48(left.concat(right)));
-            }
-            Object.defineProperties(this, {
-                key      : propertySetting,
-                low28    : propertySetting,
-                high28   : propertySetting,
-                roundKeys: propertySetting
-            });
         };
         //Feistel encryption workflow
         DES.prototype = {
