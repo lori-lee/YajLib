@@ -436,7 +436,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             }
             return {
                 score: prevRow.length ? prevRow[m] : 0,
-                pairs: prevMaxMatchingPos.length ? prevMaxMatchingPos[m] : []
+                pairs: prevRow.length && prevRow[m] > 0 ? prevMaxMatchingPos[m] : []
             };
         };
         //
