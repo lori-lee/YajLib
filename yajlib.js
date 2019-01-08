@@ -24,7 +24,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         });
     })(YajLib);
     //
-    var getBytesArray = (input) => {//@TODO: add parameter encoding, and unicode converted accordingly
+    var getBytesArray = (input, encode, littleEdian) => {//@TODO: add parameter encoding, and unicode converted accordingly
         var bytes = [];
         if(Number.isInteger(input)) {
             bytes.push(input & 0xFF);
@@ -33,14 +33,14 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             (input & 0xFF000000) && (bytes.push((input >> 24) & 0xFF));
         } else if(Array.isArray(input)) {
             bytes = input.map((v) => {
-                return getBytesArray(v);
+                return getBytesArray(v, encode, littleEdian);
             }).flat();
         } else {
             input = '' + input;
             for(let i = 0, len = input.length; i < len; ++i) {
                 //let code = input.charCodeAt(i);//UTF-16, at most 4 bytes, most time only 2 bytes
                 let code = input.codePointAt(i);//Unicode, for BMP(Basic Multi-lingual Plane), same as charCodeAt
-                bytes    = bytes.concat(getBytesArray(code));
+                bytes    = bytes.concat(getBytesArray(code, encode, littleEdian));
             }
         }
         return bytes;
@@ -475,6 +475,12 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         var _isQuote = (char) => {
             return '"' == char || "'" == char;
         };
+        var _isBlank = (char) => {
+            return !!char.match(/^\s+$/);
+        };
+        var _isTagAttrName = (char) => {
+            return _isAlphaNum(char) || ['_', '.', '-', ':'].indexOf(char) >= 0;
+        };
         //
         HTMLTokenizer = (string) => {
             var tokens = [];
@@ -535,7 +541,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                         tagContent = tagContent + string[i++];
                     }
                 } else if(1 == status) {
-                    if(_isAlphaNum(string[i])) {
+                    if(_isTagAttrName(string[i])) {
                         tagName = tagName + string[i];
                         prefixTagHtml = prefixTagHtml + string[i++];
                     } else {
@@ -558,7 +564,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                         }
                     }
                 } else if(2 == status) {
-                    if(_isAlphaNum(string[i]) || '-' == string[i] || '_' == string[i]) {
+                    if(_isTagAttrName(string[i])) {
                         attrName = attrName + string[i];
                         prefixTagHtml = prefixTagHtml + string[i++];
                     } else if('/' == string[i] && '>' == string[i + 1]) {
@@ -616,7 +622,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                         }
                     }
                 } else if(4 == status) {
-                    if(_isAlphaNum(string[i])) {
+                    if(_isTagAttrName(string[i])) {
                         tagName = tagName + string[i];
                         suffixTagHtml = suffixTagHtml + string[i++];
                     } else if('>' == string[i]){
@@ -672,13 +678,13 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         ];
         //12/20
         var gSegPolygons = [
-            [[1, 1],  [2, 0],  [8, 0],   [9, 1],  [8, 2],  [2, 2]],//A
-            [[9, 1],  [10, 2], [10, 8],  [9, 9],  [8, 8],  [8, 2]],//B
-            [[9, 9],  [10,10], [10, 16], [9, 17], [8,16],  [8,10]],//C
-            [[9, 17], [8, 18], [2, 18],  [1, 17], [2, 16], [8,16]],//D
-            [[1, 17], [0, 16], [0, 10],  [1, 9],  [2,10],  [2,16]],//E
-            [[1, 9],  [0, 8],  [0, 2],   [1, 1],  [2, 2],  [2, 8]],//F
-            [[1, 9],  [2, 8],  [8, 8],   [9, 9],  [8, 10], [2, 10]]//G
+            [[1,  1], [ 2,  0], [ 8,  0], [9,  1], [8,  2], [2,  2]],//A
+            [[9,  1], [10,  2], [10,  8], [9,  9], [8,  8], [8,  2]],//B
+            [[9,  9], [10, 10], [10, 16], [9, 17], [8, 16], [8, 10]],//C
+            [[9, 17], [ 8, 18], [ 2, 18], [1, 17], [2, 16], [8, 16]],//D
+            [[1, 17], [ 0, 16], [ 0, 10], [1,  9], [2, 10], [2, 16]],//E
+            [[1,  9], [ 0,  8], [ 0,  2], [1,  1], [2,  2], [2,  8]],//F
+            [[1,  9], [ 2,  8], [ 8,  8], [9,  9], [8, 10], [2, 10]]//G
         ];
         var gLcdDigits = [
             [0, 1, 2, 3, 4, 5],
@@ -1615,6 +1621,117 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
             decrypt: function(cipher) {
             }
         };
+    })(YajLib);
+    var FFT;
+    var RFFT;
+    ((YajLib) => {
+        var Complex = function(real, virtual) {
+            if(this instanceof Complex) {
+                var _real    = parseFloat(real);
+                var _virtual = parseFloat(virtual);
+                if(isNaN(_real) || isNaN(_virtual)) {
+                    throw 'Invalid parameter real / virtual passed. Complex(' + real + ', ' + virtual + ')';
+                }
+                [this.real, this.virtual] = [real, virtual];
+            } else {
+                return new Complex(real, virtual);
+            }
+        };
+        Complex.prototype = {
+            getReal: function() {
+                return this.real;
+            },
+            getVirtual: function() {
+                return this.virtual;
+            },
+            add: function(complex, noCopy) {
+                var a, b, c, d, e, f, r;
+                if(!(complex instanceof Complex)) {
+                    throw 'Complex expected but ' + typeof(complex) + ' given';
+                }
+                [a, b] = [this.getReal(),    this.getVirtual()];
+                [c, d] = [complex.getReal(), complex.getVirtual()];
+                e = a + c;
+                f = b + d;
+                if(noCopy) {
+                    this.real    = e;
+                    this.virtual = f;
+                    r = this;
+                } else {
+                    r = new Complex(e, f);
+                }
+                return r;
+            },
+            minus: function(complex, noCopy) {
+                var a, b, c, d, e, f, r;
+                if(!(complex instanceof Complex)) {
+                    throw 'Complex expected but ' + typeof(complex) + ' given';
+                }
+                [a, b] = [this.getReal(),    this.getVirtual()];
+                [c, d] = [complex.getReal(), complex.getVirtual()];
+                e = a - c;
+                f = b - d;
+                if(noCopy) {
+                    this.real    = e;
+                    this.virtual = f;
+                    r = this;
+                } else {
+                    r = new Complex(e, f);
+                }
+                return r;
+            },
+            multiply: function(complex, noCopy) {
+                var a, b, c, d, e, f, r;
+                if(!(complex instanceof Complex)) {
+                    throw 'Complex expected but ' + typeof(complex) + ' given';
+                }
+                [a, b] = [this.getReal(),    this.getVirtual()];
+                [c, d] = [complex.getReal(), complex.getVirtual()];
+                e = a * c - b * d;
+                f = a * d + b * c;
+                if(noCopy) {
+                    this.real    = e;
+                    this.virtual = f;
+                    r = this;
+                } else {
+                    r = new Complex(e, f);
+                }
+                return r;
+            },
+            divide: function(complex, noCopy) {
+                var a, b, c, d, e, f, r;
+                if(!(complex instanceof Complex)) {
+                    throw 'Complex expected but ' + typeof(complex) + ' given';
+                }
+                [a, b] = [this.getReal(),    this.getVirtual()];
+                [c, d] = [complex.getReal(), complex.getVirtual()];
+                if(c == 0 && d == 0) {
+                    throw 'Divided by ZERO: [' + [a, b] + 'i] / [0, 0i]';
+                }
+                let g = Math.pow(c, 2) + Math.pow(d, 2);
+                e =  a * c + b * d;
+                f = -a * d + b * c;
+                e /= g;
+                f /= g;
+                if(noCopy) {
+                    this.real    = e;
+                    this.virtual = f;
+                    r = this;
+                } else {
+                    r = new Complex(e, f);
+                }
+                return r;
+            }
+        };
+        //
+        FFT = (vector) => {
+        };
+        YajLib.FFT  || (YajLib.FFT  = FFT);
+        YajLib.RFFT || (YajLib.RFFT = RFFT);
+        Object.defineProperties(YajLib, {
+            FFT : propertySetting,
+            RFFT: propertySetting
+        });
     })(YajLib);
     window.YY || (window.YY = YajLib);
 }(window));
