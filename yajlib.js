@@ -602,6 +602,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                             storeAttrValue();
                             status = 2;
                         } else {
+                            attrValue     = attrValue + string[i];
                             prefixTagHtml = prefixTagHtml + string[i++];
                         }
                     } else {
@@ -616,7 +617,9 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                                    || ('/' == string[i] && '>' == string[i + 1]))) {
                                 status = 2;
                             } else {
-                                attrValue = attrValue + string[i];
+                                if('\\' != string[i] || !_isQuote(string[i + 1])) {//\' | \"
+                                    attrValue = attrValue + string[i];
+                                }
                                 prefixTagHtml = prefixTagHtml + string[i++];
                             }
                         }
