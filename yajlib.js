@@ -586,8 +586,10 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                             while(isBlank(string[i])) {
                                 prefixTagHtml = prefixTagHtml + string[i++];
                             }
+                            status = 3;
+                        } else {
+                            storeAttrValue();
                         }
-                        status = 3;
                     }
                 } else if(3 == status) {
                     if(_isQuote(string[i])) {
