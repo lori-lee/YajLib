@@ -11,6 +11,212 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
 (function(window) {
     'use strict';
     var propertySetting = {writable: false, configurable: false};
+    const _isArrayFn = (input) => {
+        return Array.isArray(input);
+    };
+    const _isObjectFn = (input) => {
+        return 'object' === typeof(input);
+    };
+    const _cloneFn = function(source, deep) {
+        if(!source || !_isObjectFn(source)) {
+            return source;
+        } else {
+            let cloned = _isArrayFn(source) || (_isObjectFn(source) && source.length) ? [] : {};
+            for(let k in source) {
+                cloned[k] = !!deep ? _cloneFn(source[k], true) : source[k];
+            }
+            return cloned;
+        }
+    };
+    ((YajLib) => {
+        let sprintf = function(format) {//in-complete version of linux "man 3 sprintf"
+            let result = '';
+            let flag          = '([#0\\- +\'I])';
+            let minWidth      = '((\\*)?([0-9]*\\$)?)|([0-9]+)';
+            let precision     = '\\.((\\*)?([0-9]+\\$)?|(-?[0-9]+))?';
+            let lengthModifier= 'hh|h|l|ll|L|q|j|z|t';
+            let conversion    = 'b|d|i|o|u|x|X|e|E|f|F|g|G|a|A|c|s';
+            let formatPattern = '^%({flag}*)({minWidth})?({precision})?({lengthModifier})?({conversion})?';
+            let args = _cloneFn(arguments, true);
+            formatPattern = formatPattern.replace('{flag}', flag)
+                                         .replace('{minWidth}', minWidth)
+                                         .replace('{precision}', precision)
+                                         .replace('{lengthModifier}', lengthModifier)
+                                         .replace('{conversion}', conversion);
+            let formatPatternRE     = new RegExp(formatPattern);
+            let dualPercentageSymRE = new RegExp('^%%');
+            let match;
+            const _IntType   = 0x0;
+            const _BinType   = 0x2;
+            const _OctType   = 0x4;
+            const _HexType   = 0x6;
+            const _HexType2  = 0x8;
+            const _FloatType = 0x10;
+            const _ExpType   = 0x12;
+            const _ExpType2  = 0x14;
+            //
+            const _CharType  = 0x20;
+            const _StrType   = 0x21;
+            const _typeMap = {
+                d: _IntType, i: _IntType, u: _IntType,
+                b: _BinType, o: _OctType, x: _HexType, X: _HexType2,
+                f: _FloatType, F: _FloatType,
+                e: _ExpType, E: _ExpType2, g: _ExpType, G: _ExpType2,
+                c: _CharType, s: _StrType
+            };
+            if(format) {
+                let _converterFn = function(padding, width, precision, type, prefixPlus, value) {
+                    padding   = padding.toString();
+                    padding   = !padding ? ' ' : padding;
+                    precision = Math.max(0, Number.parseInt(precision));
+                    precision = isNaN(precision) ? 0 : precision;
+                    width = Number.parseInt(width);
+                    width = isNaN(width) ? 0 : width;
+                    prefixPlus = !!prefixPlus;
+                    if(_FloatType <= type && type <= _ExpType2) {
+                        value = Number.parseFloat(value);
+                        if(!isNaN(value)) {
+                            let _radix = 0;
+                            if(type >= _ExpType) {
+                                _radix = Math.floor(Math.log10(value));
+                                value /= Math.pow(10, _radix);
+                            }
+                            let _pow10n = Math.pow(10, precision);
+                            value = (Math.round(value * _pow10n) / _pow10n);
+                            if(type >= _ExpType) {
+                                value = value + 'e' + _radix;
+                            }
+                        } else {
+                            value = value.toString();
+                        }
+                    } else if(type < _FloatType) {
+                        value = Number.parseInt(value);
+                        if(!isNaN(value)) {
+                            switch(type) {
+                            case _BinType : value = (value).toString( 2); break;
+                            case _OctType : value = (value).toString( 8); break;
+                            case _HexType : 
+                            case _HexType2: value = (value).toString(16); break;
+                            }
+                        } else {
+                            value = value.toString();
+                        }
+                    } else {
+                        value = (value && value.toString) ? value.toString() : '' + value;
+                        if(_CharType == type) {
+                            value = value[0];
+                        }
+                    }
+                    value = '' + value;
+                    if(_HexType2 == type || _ExpType2 == type) {
+                        value = value.toUpperCase();
+                    }
+                    if(type <= _ExpType2 && (prefixPlus && '-' != value[0])) {
+                        value = '+' + value;
+                    }
+                    if(value.length < Math.abs(width)) {
+                        let absWidth = Math.abs(width);
+                        if(width > 0) {
+                            if(type <= _ExpType2
+                                && ('+' == value[0] || '-' == value[0])
+                                && !padding.match(/\s+/g)) {
+                                value = value[0] + value.substr(1).padStart(absWidth - 1, padding);
+                            } else {
+                                value = value.padStart(absWidth, padding);
+                            }
+                        } else {
+                            value = value.padEnd(absWidth, padding);
+                        }
+                    }
+                    return value;
+                };
+                let nextArgIndex = 0;
+                for(let i = 0, l = format.length; i < l;) {
+                    if('%' != format[i]) {
+                        result = result + format[i++];
+                    } else if(dualPercentageSymRE.exec(format.substr(i))) {
+                        (i += 2) && (result = result + '%%');
+                    } else if(match = formatPatternRE.exec(format.substr(i))) {
+                        let _flags          = match[ 1] ? match[ 1] : '';
+                        let _minWidth       = match[ 3] ? match[ 3] : '';
+                        let _precision      = match[ 8] ? match[ 8] : '';
+                        let _lengthModifier = match[13] ? match[13] : '';
+                        let _conversion     = match[14] ? match[14] : '';
+                        let _paddingChar  = '';
+                        let _width        = 0;
+                        let _precisions   = 0;
+                        let _paddingLeft  = false;
+                        let _prefixPlusSym= false;
+                        let _value = args[++nextArgIndex];
+                        if(_flags.indexOf('#') >= 0) {
+                            _paddingChar = (_conversion.match(/[oxX]/) ? '0' : '');
+                        } else {
+                            _paddingChar = _flags.indexOf('0') >= 0
+                                         ? '0' : (_flags.indexOf(' ') >= 0
+                                               ? ' ' : '');
+                        }
+                        _paddingLeft   = (_flags.indexOf('-') >= 0);
+                        _prefixPlusSym = (_flags.indexOf('+') >= 0);
+                        if(_minWidth) {
+                            if(match[7]) {
+                                _width = Number.parseInt(match[7]);
+                            } else if(match[4]) {
+                                if(match[5]) {//*
+                                    if(match[6]) {
+                                        let _i = Number.parseInt(match[6]);
+                                        _width = Number.parseInt(isNaN(_i) ? NaN : args[_i]);
+                                    } else {
+                                        _width = Number.parseInt(args[nextArgIndex]);
+                                    }
+                                } else if(match[6]) {
+                                    let _i = Number.parseInt(match[6]);
+                                    _value = (isNaN(_i) ? NaN : args[_i]);
+                                    --nextArgIndex;
+                                }
+                            }
+                        }
+                        if(_paddingLeft) {
+                            _width = -_width;
+                        }
+                        if(_precision) {
+                            if(match[12]) {
+                                _precisions = Number.parseInt(match[12]);
+                            } else {
+                                if(match[10]) {//*
+                                    if(match[11]) {
+                                        let _i = Number.parseInt(match[11]);
+                                        _precisions = Number.parseInt(isNaN(_i) ? NaN : args[_i]);
+                                    } else {
+                                        _precisions = Number.parseInt(args[nextArgIndex]);
+                                    }
+                                } else if(match[11]) {
+                                    let _i = Number.parseInt(match[11]);
+                                    _precisions = Number.parseInt(isNaN(_i) ? NaN : args[_i]);
+                                }
+                            }
+                        }
+                        if(_lengthModifier && !_conversion) {
+                            _conversion = 'd';
+                        }
+                        if(_conversion && 'undefined' != typeof _typeMap[_conversion]) {
+                            let _type = _typeMap[_conversion];
+                            result = result + _converterFn(_paddingChar, _width, _precisions, _type, _prefixPlusSym, _value);
+                            i += match[0].length;
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            }
+            return result;
+        };
+        YajLib.sprintf || (YajLib.sprintf = sprintf);
+        Object.defineProperties(YajLib, {
+            sprintf: propertySetting
+        });
+    })(YajLib);
     //
     ((YajLib) => {
         var isLittleEndian = (() => {
