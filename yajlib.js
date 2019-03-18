@@ -65,7 +65,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                 c: _CharType, s: _StrType
             };
             if(format) {
-                let _converterFn = function(padding, width, precision, type, prefixPlus, value) {
+                let _converterFn = function(paddingOnce, padding, width, precision, type, prefixPlus, value) {
                     padding   = padding.toString();
                     padding   = !padding ? ' ' : padding;
                     precision = Math.max(0, Number.parseInt(precision));
@@ -77,14 +77,17 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                         value = Number.parseFloat(value);
                         if(!isNaN(value)) {
                             let _radix = 0;
+                            let _prefixMinus = '';
                             if(type >= _ExpType) {
+                                _prefixMinus = value < 0 ? '-' : '';
+                                value  = Math.abs(value);
                                 _radix = Math.floor(Math.log10(value));
                                 value /= Math.pow(10, _radix);
                             }
                             let _pow10n = Math.pow(10, precision);
                             value = (Math.round(value * _pow10n) / _pow10n);
                             if(type >= _ExpType) {
-                                value = value + 'e' + _radix;
+                                value = _prefixMinus + value + 'e' + _radix;
                             }
                         } else {
                             value = value.toString();
@@ -98,6 +101,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                             case _HexType : 
                             case _HexType2: value = (value).toString(16); break;
                             }
+                            value = ('-' == value[0]) ? ('-' + paddingOnce + value.substr(1)) : (paddingOnce + value);
                         } else {
                             value = value.toString();
                         }
@@ -135,21 +139,22 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                     if('%' != format[i]) {
                         result = result + format[i++];
                     } else if(dualPercentageSymRE.exec(format.substr(i))) {
-                        (i += 2) && (result = result + '%%');
+                        (i += 2) && (result = result + '%');
                     } else if(match = formatPatternRE.exec(format.substr(i))) {
                         let _flags          = match[ 1] ? match[ 1] : '';
                         let _minWidth       = match[ 3] ? match[ 3] : '';
                         let _precision      = match[ 8] ? match[ 8] : '';
                         let _lengthModifier = match[13] ? match[13] : '';
                         let _conversion     = match[14] ? match[14] : '';
+                        let _paddingOnce  = '';
                         let _paddingChar  = '';
                         let _width        = 0;
                         let _precisions   = 0;
                         let _paddingLeft  = false;
                         let _prefixPlusSym= false;
                         let _value = args[++nextArgIndex];
-                        if(_flags.indexOf('#') >= 0) {
-                            _paddingChar = (_conversion.match(/[oxX]/) ? '0' : '');
+                        if(_flags.indexOf('#') >= 0 && _conversion.match(/[oxX]/)) {
+                            _paddingOnce = ('o' == _conversion ? '0' : ('0' + _conversion));
                         } else {
                             _paddingChar = _flags.indexOf('0') >= 0
                                          ? '0' : (_flags.indexOf(' ') >= 0
@@ -200,7 +205,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                         }
                         if(_conversion && 'undefined' != typeof _typeMap[_conversion]) {
                             let _type = _typeMap[_conversion];
-                            result = result + _converterFn(_paddingChar, _width, _precisions, _type, _prefixPlusSym, _value);
+                            result = result + _converterFn(_paddingOnce, _paddingChar, _width, _precisions, _type, _prefixPlusSym, _value);
                             i += match[0].length;
                         } else {
                             break;
