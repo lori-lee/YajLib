@@ -65,7 +65,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
     ((YajLib) => {
         let sprintf = function(format) {//JS version of linux "man 3 sprintf"
             if(this instanceof sprintf) {
-                return QtLib.log('[Waning]: QtLib.sprintf is a pure function, and cannot new an instance');
+                return console.log('[Error]: sprintf is a pure function, and cannot new an instance');
             }
             let result = '';
             let flag          = '([#0\\- +\'I])';
