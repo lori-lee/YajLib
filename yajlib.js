@@ -29,7 +29,10 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
         }
     };
     ((YajLib) => {
-        let sprintf = function(format) {//in-complete version of linux "man 3 sprintf"
+        let sprintf = function(format) {//JS version of linux "man 3 sprintf"
+            if(this instanceof sprintf) {
+                return QtLib.log('[Waning]: QtLib.sprintf is a pure function, and cannot new an instance');
+            }
             let result = '';
             let flag          = '([#0\\- +\'I])';
             let minWidth      = '((\\*)?([0-9]*\\$)?)|([0-9]+)';
@@ -69,13 +72,13 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                     padding   = padding.toString();
                     padding   = !padding ? ' ' : padding;
                     precision = Math.max(0, Number.parseInt(precision));
-                    precision = isNaN(precision) ? 0 : precision;
+                    precision = Number.isNaN(precision) ? 0 : precision;
                     width = Number.parseInt(width);
-                    width = isNaN(width) ? 0 : width;
+                    width = Number.isNaN(width) ? 0 : width;
                     prefixPlus = !!prefixPlus;
                     if(_FloatType <= type && type <= _ExpType2) {
                         value = Number.parseFloat(value);
-                        if(!isNaN(value)) {
+                        if(!Number.isNaN(value)) {
                             let _radix = 0;
                             let _prefixMinus = '';
                             if(type >= _ExpType) {
@@ -85,7 +88,11 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                                 value /= Math.pow(10, _radix);
                             }
                             let _pow10n = Math.pow(10, precision);
-                            value = (Math.round(value * _pow10n) / _pow10n);
+                            value = (Math.round(value * _pow10n) / _pow10n) + '';
+                            if(precision > 0) {
+                                let parts = value.split('.');
+                                value = parts[0] + '.' + ((parts.length > 1) ? parts[1] : '').padEnd(precision, '0');
+                            }
                             if(type >= _ExpType) {
                                 value = _prefixMinus + value + 'e' + _radix;
                             }
@@ -94,7 +101,7 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                         }
                     } else if(type < _FloatType) {
                         value = Number.parseInt(value);
-                        if(!isNaN(value)) {
+                        if(!Number.isNaN(value)) {
                             switch(type) {
                             case _BinType : value = (value).toString( 2); break;
                             case _OctType : value = (value).toString( 8); break;
@@ -169,13 +176,13 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                                 if(match[5]) {//*
                                     if(match[6]) {
                                         let _i = Number.parseInt(match[6]);
-                                        _width = Number.parseInt(isNaN(_i) ? NaN : args[_i]);
+                                        _width = Number.parseInt(Number.isNaN(_i) ? NaN : args[_i]);
                                     } else {
                                         _width = Number.parseInt(args[nextArgIndex]);
                                     }
                                 } else if(match[6]) {
                                     let _i = Number.parseInt(match[6]);
-                                    _value = (isNaN(_i) ? NaN : args[_i]);
+                                    _value = (Number.isNaN(_i) ? NaN : args[_i]);
                                     --nextArgIndex;
                                 }
                             }
@@ -190,14 +197,19 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
                                 if(match[10]) {//*
                                     if(match[11]) {
                                         let _i = Number.parseInt(match[11]);
-                                        _precisions = Number.parseInt(isNaN(_i) ? NaN : args[_i]);
+                                        _precisions = Number.parseInt(Number.isNaN(_i) ? NaN : args[_i]);
                                     } else {
                                         _precisions = Number.parseInt(args[nextArgIndex]);
                                     }
                                 } else if(match[11]) {
                                     let _i = Number.parseInt(match[11]);
-                                    _precisions = Number.parseInt(isNaN(_i) ? NaN : args[_i]);
+                                    _precisions = Number.parseInt(Number.isNaN(_i) ? NaN : args[_i]);
                                 }
+                            }
+                        } else if(_conversion) {
+                            _precisions = 'fFgG'.indexOf(_conversion) >= 0 ? 6 : 0;
+                            if(_lengthModifier && 'lL'.indexOf(_lengthModifier) >= 0) {
+                                _precisions += 6;
                             }
                         }
                         if(_lengthModifier && !_conversion) {
