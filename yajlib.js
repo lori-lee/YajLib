@@ -11,21 +11,55 @@ var YajLib = YajLib || {author: 'Lori Lee', email: 'leejqy@163.com', version: '1
 (function(window) {
     'use strict';
     var propertySetting = {writable: false, configurable: false};
-    const _isArrayFn = (input) => {
-        return Array.isArray(input);
+    //
+    const _isCallableFn = (fn)    => ('function' === typeof(fn));
+    const _isArrayFn    = (input) => (Array.isArray(input));
+    const _isObjectFn   = (input) => ('object' === typeof(input));
+    const _isEmptyObjectFn = (input) => {
+        return (_isObjectFn(input) && (!input || !Object.keys(input).length))
+                || (_isArrayFn(input) && !input.length);
     };
-    const _isObjectFn = (input) => {
-        return 'object' === typeof(input);
-    };
-    const _cloneFn = function(source, deep) {
+    const _cloneFn = (source, deep) => {
         if(!source || !_isObjectFn(source)) {
             return source;
         } else {
-            let cloned = _isArrayFn(source) || (_isObjectFn(source) && source.length) ? [] : {};
-            for(let k in source) {
-                cloned[k] = !!deep ? _cloneFn(source[k], true) : source[k];
+            if(!!deep) {
+                var _cloneId = 1;
+                const __cloneFn = (source, clonedMap) => {
+                    if(!source || !_isObjectFn(source)) {
+                        return source;
+                    }
+                    clonedMap = clonedMap || {};
+                    if(!source.__cloneId) {//here we assume it is an extensible object
+                        source.__cloneId = _cloneId++;
+                        let cloned = _isArrayFn(source) || (_isObjectFn(source) && source.length) ? [] : {};
+                        clonedMap[source.__cloneId] = cloned;
+                        for(let k in source) {
+                            cloned[k] = __cloneFn(source[k], clonedMap);
+                        }
+                    }
+                    return clonedMap[source.__cloneId];
+                };
+                const _cleanAttrOfObjFn = (target, attr) => {
+                    if(!!target && (_isObjectFn(target) || _isCallableFn(target))) {
+                        delete target[attr];
+                        for(let k in target) {
+                            _cleanAttrOfObjFn(target[k], attr);
+                        }
+                    }
+                };
+                let clonedMap = {};
+                let cloned    = __cloneFn(source, clonedMap);
+                _cleanAttrOfObjFn(source, '__cloneId');
+                _cleanAttrOfObjFn(cloned, '__cloneId');
+                return cloned;
+            } else {
+                let cloned = _isArrayFn(source) || (_isObjectFn(source) && source.length) ? [] : {};
+                for(let k in source) {
+                    cloned[k] = source[k];
+                }
+                return cloned;
             }
-            return cloned;
         }
     };
     ((YajLib) => {
